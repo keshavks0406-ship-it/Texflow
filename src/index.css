@@ -222,3 +222,24 @@ footer{display:flex;justify-content:space-between;padding:25px 2px 0;color:#9aac
 .employee-management .attendance-summary span{display:block;color:#82938f;font-size:10px}
 .employee-management .attendance-summary strong{display:block;margin-top:7px;color:#29474a;font-size:19px;overflow-wrap:anywhere}
 @media(max-width:600px){.employee-management .attendance-summary{grid-template-columns:1fr 1fr}.employee-management .attendance-summary>div:last-child{grid-column:1/-1}.employee-management .employee-actions{width:100%}.employee-management .employee-actions button{flex:1}}
+
+
+/* Accounts and financial management */
+.accounts-panel { display: flex; flex-direction: column; gap: 20px; }
+.accounts-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.accounts-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+.accounts-summary > div { display: flex; flex-direction: column; gap: 8px; padding: 18px; border: 1px solid var(--border, #e5e7eb); border-radius: 14px; background: var(--surface, #fff); min-width: 0; }
+.accounts-summary > div > span { display: flex; align-items: center; gap: 7px; color: var(--muted, #64748b); font-size: 13px; }
+.accounts-summary strong { font-size: 21px; overflow-wrap: anywhere; }
+.accounts-summary small { color: var(--muted, #64748b); font-size: 12px; }
+.accounts-form { margin: 0; }
+.accounts-form h3 { margin: 0 0 14px; }
+.accounts-panel .table-toolbar { margin-top: 4px; }
+.accounts-panel .table-toolbar h3 { margin: 0 0 4px; }
+.accounts-panel .table-toolbar p { margin: 0; color: var(--muted, #64748b); font-size: 13px; }
+.accounts-panel .status-pill { display: inline-flex; align-items: center; border-radius: 999px; padding: 4px 9px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.accounts-panel .status-paid { background: #dcfce7; color: #166534; }
+.accounts-panel .status-progress { background: #fef3c7; color: #92400e; }
+.accounts-panel .status-pending { background: #fee2e2; color: #991b1b; }
+@media (max-width: 900px) { .accounts-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .accounts-summary { grid-template-columns: 1fr 1fr; gap: 8px; } .accounts-summary > div { padding: 12px; } .accounts-summary strong { font-size: 17px; } .accounts-actions { width: 100%; } .accounts-actions button { flex: 1; justify-content: center; } }
