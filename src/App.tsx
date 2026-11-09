@@ -17,8 +17,8 @@ type PurchaseRow = Tables<'purchases'>
 type InventoryItem = Tables<'inventory_items'>
 type InventoryTransaction = Tables<'inventory_transactions'>
 type BoilerLog = Tables<'boiler_logs'>
-const emptyBoilerLog = { log_date: today(), firewood_consumed_kg: '', boiler_operating_hours: '', steam_generated_kg: '', fabric_processed_kg: '', fuel_cost: '', notes: '' }
 const today = () => new Date().toLocaleDateString('en-CA')
+const emptyBoilerLog = { log_date: today(), firewood_consumed_kg: '', boiler_operating_hours: '', steam_generated_kg: '', fabric_processed_kg: '', fuel_cost: '', notes: '' }
 const emptyCustomer = { name: '', phone: '', email: '', gstin: '', address: '' }
 const emptyOrder = { order_number: '', customer_id: '', fabric_type: 'Knitted fabric', received_weight_kg: '', expected_delivery_date: '', notes: '' }
 const emptyProduction = { job_order_id: '', input_weight_kg: '', output_weight_kg: '', production_date: today(), shift: 'Day', machine_name: 'Syntex A3', notes: '' }
