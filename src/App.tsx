@@ -5,7 +5,7 @@ import type { Tables } from './types/database'
 import { isSupabaseConfigured, supabase } from './lib/supabase'
 
 type Language = 'en' | 'ta'
-type Page = 'overview' | 'customers' | 'orders' | 'production' | 'dispatch' | 'expenses' | 'purchases'
+type Page = 'overview' | 'customers' | 'orders' | 'production' | 'dispatch' | 'expenses' | 'purchases' | 'inventory'
 type Organization = Tables<'organizations'>
 type FactoryRow = Tables<'factories'>
 type Customer = Tables<'customers'>
@@ -14,6 +14,8 @@ type ProductionEntry = Tables<'production_entries'>
 type DispatchRow = Tables<'dispatches'>
 type ExpenseRow = Tables<'expenses'>
 type PurchaseRow = Tables<'purchases'>
+type InventoryItem = Tables<'inventory_items'>
+type InventoryTransaction = Tables<'inventory_transactions'>
 const today = () => new Date().toLocaleDateString('en-CA')
 const emptyCustomer = { name: '', phone: '', email: '', gstin: '', address: '' }
 const emptyOrder = { order_number: '', customer_id: '', fabric_type: 'Knitted fabric', received_weight_kg: '', expected_delivery_date: '', notes: '' }
@@ -25,6 +27,8 @@ const emptyExpense = { expense_date: today(), category: 'Boiler fuel', amount: '
 const purchaseCategories = ['Firewood', 'Diesel / fuel', 'Chemicals', 'Spare parts', 'Packing materials', 'Consumables', 'Maintenance', 'Other']
 const purchaseUnits = ['kg', 'litre', 'piece', 'tonne', 'bag', 'box', 'load', 'unit']
 const emptyPurchase = { purchase_date: today(), supplier_name: '', supplier_phone: '', invoice_number: '', category: 'Firewood', item_name: '', quantity: '', unit: 'kg', unit_price: '', gst_percent: '0', payment_mode: 'Cash', notes: '' }
+const emptyInventoryItem = { item_name: '', category: 'Firewood', unit: 'kg', reorder_level: '0' }
+const emptyStockMovement = { item_id: '', transaction_type: 'consumption', quantity: '', transaction_date: today(), notes: '' }
 
 export default function App() {
   const [language, setLanguage] = useState<Language>('en')
@@ -58,6 +62,12 @@ export default function App() {
   const [dispatches, setDispatches] = useState<DispatchRow[]>([])
   const [expenses, setExpenses] = useState<ExpenseRow[]>([])
   const [purchases, setPurchases] = useState<PurchaseRow[]>([])
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([])
+  const [inventoryTransactions, setInventoryTransactions] = useState<InventoryTransaction[]>([])
+  const [inventoryItemFormOpen, setInventoryItemFormOpen] = useState(false)
+  const [stockMovementFormOpen, setStockMovementFormOpen] = useState(false)
+  const [inventoryItemForm, setInventoryItemForm] = useState(emptyInventoryItem)
+  const [stockMovementForm, setStockMovementForm] = useState(emptyStockMovement)
   const [purchaseFormOpen, setPurchaseFormOpen] = useState(false)
   const [purchaseForm, setPurchaseForm] = useState(emptyPurchase)
   const [expenseFormOpen, setExpenseFormOpen] = useState(false)
@@ -144,6 +154,18 @@ export default function App() {
     setProductionEntries(data ?? [])
   }
 
+  async function loadInventoryRecords() {
+    if (!supabase || !selectedOrg || !selectedFactory) { setInventoryItems([]); setInventoryTransactions([]); return }
+    const [items, movements] = await Promise.all([
+      supabase.from('inventory_items').select('*').eq('organization_id', selectedOrg).eq('factory_id', selectedFactory).order('item_name'),
+      supabase.from('inventory_transactions').select('*').eq('organization_id', selectedOrg).eq('factory_id', selectedFactory).order('transaction_date', { ascending: false }).order('created_at', { ascending: false }).limit(500)
+    ])
+    const failure = items.error || movements.error
+    if (failure) throw failure
+    setInventoryItems(items.data ?? [])
+    setInventoryTransactions(movements.data ?? [])
+  }
+
   async function loadPurchaseRecords() {
     if (!supabase || !selectedOrg || !selectedFactory) { setPurchases([]); return }
     const { data, error: e } = await supabase.from('purchases').select('*').eq('organization_id', selectedOrg).eq('factory_id', selectedFactory).order('purchase_date', { ascending: false }).order('created_at', { ascending: false }).limit(500)
@@ -180,7 +202,7 @@ export default function App() {
   useEffect(() => {
     if (!user || !selectedOrg) return
     let alive = true
-    Promise.all([loadBusinessRecords(), loadDispatchRecords(), loadExpenseRecords(), loadPurchaseRecords()]).catch(e => { if (alive) setError(e instanceof Error ? e.message : 'Could not load records.') })
+    Promise.all([loadBusinessRecords(), loadDispatchRecords(), loadExpenseRecords(), loadPurchaseRecords(), loadInventoryRecords()]).catch(e => { if (alive) setError(e instanceof Error ? e.message : 'Could not load records.') })
     return () => { alive = false }
   }, [user, selectedOrg])
 
@@ -368,6 +390,38 @@ export default function App() {
     finally { setBusy(false) }
   }
 
+  async function addInventoryItem(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!supabase || !selectedOrg || !selectedFactory) return
+    setBusy(true); setError(''); setNotice('')
+    try {
+      const reorder = Number(inventoryItemForm.reorder_level)
+      if (!inventoryItemForm.item_name.trim()) throw new Error('Enter an inventory item name.')
+      if (!Number.isFinite(reorder) || reorder < 0) throw new Error('Reorder level cannot be negative.')
+      const { error: e } = await supabase.from('inventory_items').insert({ organization_id: selectedOrg, factory_id: selectedFactory, item_name: inventoryItemForm.item_name.trim(), category: inventoryItemForm.category, unit: inventoryItemForm.unit, reorder_level: reorder })
+      if (e) throw e
+      setInventoryItemForm(emptyInventoryItem); setInventoryItemFormOpen(false)
+      await loadInventoryRecords(); setNotice('Inventory item created. Record opening stock using Stock in.')
+    } catch (e) { setError(e instanceof Error ? e.message : 'Could not create inventory item.') }
+    finally { setBusy(false) }
+  }
+
+  async function addStockMovement(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!supabase || !selectedOrg || !selectedFactory) return
+    setBusy(true); setError(''); setNotice('')
+    try {
+      const quantity = Number(stockMovementForm.quantity)
+      if (!stockMovementForm.item_id) throw new Error('Select an inventory item.')
+      if (!Number.isFinite(quantity) || quantity <= 0) throw new Error('Enter a quantity greater than zero.')
+      const { error: e } = await supabase.from('inventory_transactions').insert({ organization_id: selectedOrg, factory_id: selectedFactory, item_id: stockMovementForm.item_id, transaction_type: stockMovementForm.transaction_type, quantity, transaction_date: stockMovementForm.transaction_date, notes: stockMovementForm.notes.trim() || null })
+      if (e) throw e
+      setStockMovementForm({ ...emptyStockMovement, transaction_date: stockMovementForm.transaction_date }); setStockMovementFormOpen(false)
+      await loadInventoryRecords(); setNotice('Stock movement recorded successfully.')
+    } catch (e) { setError(e instanceof Error ? e.message : 'Could not record stock movement.') }
+    finally { setBusy(false) }
+  }
+
   async function addPurchase(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!supabase || !selectedOrg || !selectedFactory) return
@@ -438,7 +492,8 @@ export default function App() {
     { key: 'production' as Page, icon: Factory, label: 'Production', color: 'mint' },
     { key: 'dispatch' as Page, icon: Truck, label: 'Dispatch', color: 'green' },
     { key: 'expenses' as Page, icon: Receipt, label: 'Expenses', color: 'amber' },
-    { key: 'purchases' as Page, icon: Package, label: 'Purchases', color: 'blue' }, 
+    { key: 'purchases' as Page, icon: Package, label: 'Purchases', color: 'blue' },
+    { key: 'inventory' as Page, icon: Boxes, label: 'Inventory', color: 'mint' }, 
 
     { key: 'overview' as Page, icon: Activity, label: tr.overview, color: 'mint' }
   ]
@@ -459,13 +514,14 @@ export default function App() {
         <button className={'nav-link ' + (page === 'dispatch' ? 'active' : '')} onClick={() => { setPage('dispatch'); setMenuOpen(false) }}><Truck size={18} />Dispatch</button>
         <button className={'nav-link ' + (page === 'expenses' ? 'active' : '')} onClick={() => { setPage('expenses'); setMenuOpen(false) }}><Receipt size={18} />Expenses</button>
         <button className={'nav-link ' + (page === 'purchases' ? 'active' : '')} onClick={() => { setPage('purchases'); setMenuOpen(false) }}><Package size={18} />Purchases</button>
-        {['Inventory', 'Employees', 'Accounts', 'Reports'].map(label => <button className="nav-link" key={label} onClick={() => setNotice(label + ' will be developed in the next stage.')}><Package size={18} />{label}</button>)}
+        <button className={'nav-link ' + (page === 'inventory' ? 'active' : '')} onClick={() => { setPage('inventory'); setMenuOpen(false) }}><Boxes size={18} />Inventory</button>
+        {['Employees', 'Accounts', 'Reports'].map(label => <button className="nav-link" key={label} onClick={() => setNotice(label + ' will be developed in the next stage.')}><Package size={18} />{label}</button>)}
       </nav>
       <div className="sidebar-bottom"><button className="nav-link" onClick={() => setNotice('Settings will be added in a later stage.')}><Settings size={18} />Settings</button><button className="nav-link" onClick={() => setNotice('Help and support will be added in a later stage.')}><CircleHelp size={18} />Help & support</button><div className="profile-row"><div className="avatar">{(user.email?.[0] ?? 'U').toUpperCase()}</div><div><strong>{user.user_metadata?.full_name || user.email}</strong><small>{user.email}</small></div><button className="icon-btn" aria-label={tr.signout} onClick={signOut}><LogOut size={17} /></button></div></div>
     </aside>
     {menuOpen && <button className="scrim" aria-label="Close menu" onClick={() => setMenuOpen(false)} />}
     <main className="main-area">
-      <header className="topbar"><button className="icon-btn mobile-menu" aria-label="Open menu" onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <X /> : <Menu />}</button><div className="breadcrumb">{currentOrg?.name ?? 'Workspace'} <span>/</span> {page === 'overview' ? tr.overview : page === 'customers' ? tr.customers : page === 'orders' ? tr.orders : page === 'production' ? 'Production' : page === 'dispatch' ? 'Dispatch' : page === 'expenses' ? 'Expenses' : 'Purchases'}</div><div className="top-actions"><LanguageSwitch language={language} setLanguage={setLanguage} /><button className="icon-btn notification" aria-label="Notifications"><Bell size={19} /></button><div className="top-avatar">{(user.email?.[0] ?? 'U').toUpperCase()}</div></div></header>
+      <header className="topbar"><button className="icon-btn mobile-menu" aria-label="Open menu" onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <X /> : <Menu />}</button><div className="breadcrumb">{currentOrg?.name ?? 'Workspace'} <span>/</span> {page === 'overview' ? tr.overview : page === 'customers' ? tr.customers : page === 'orders' ? tr.orders : page === 'production' ? 'Production' : page === 'dispatch' ? 'Dispatch' : page === 'expenses' ? 'Expenses' : page === 'purchases' ? 'Purchases' : 'Inventory'}</div><div className="top-actions"><LanguageSwitch language={language} setLanguage={setLanguage} /><button className="icon-btn notification" aria-label="Notifications"><Bell size={19} /></button><div className="top-avatar">{(user.email?.[0] ?? 'U').toUpperCase()}</div></div></header>
       <div className="content">
         {page === 'overview' && <>
           <div className="welcome-row"><div><span className="eyebrow">LIVE WORKSPACE · {new Date().toLocaleDateString('en-IN', { dateStyle: 'full' })}</span><h1>Welcome, {user.user_metadata?.full_name || user.email?.split('@')[0]} <span>✦</span></h1><p>Here is the live overview of your factory workspace.</p></div><div className="demo-tag"><span />Connected</div></div>
@@ -502,6 +558,14 @@ export default function App() {
           </form>}
           <div className="table-toolbar"><span>{productionEntries.length} production entries</span><span>Latest 200 records</span></div>
           <div className="table-scroll"><table className="records-table production-table"><thead><tr><th>Date</th><th>Job order</th><th>Machine</th><th>Shift</th><th>Input (kg)</th><th>Output (kg)</th><th>Loss (kg)</th><th>Loss (%)</th></tr></thead><tbody>{productionEntries.map(entry => { const loss = Number(entry.input_weight_kg) - Number(entry.output_weight_kg); const pct = Number(entry.input_weight_kg) > 0 ? loss / Number(entry.input_weight_kg) * 100 : 0; const order = jobOrders.find(o => o.id === entry.job_order_id); return <tr key={entry.id}><td>{entry.production_date}</td><td><strong>{order?.order_number ?? 'Job order'}</strong></td><td>{entry.machine_name || '—'}</td><td>{entry.shift || '—'}</td><td>{Number(entry.input_weight_kg).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td><td>{Number(entry.output_weight_kg).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td><td>{loss.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td><td><strong>{pct.toFixed(2)}%</strong></td></tr> })}</tbody></table>{!productionEntries.length && <div className="empty-state"><Factory size={25} /><strong>No production entries yet</strong><span>Choose an open job order and record the input and output weights.</span></div>}</div>
+        </section>}
+        {page === 'inventory' && <section className="panel data-panel"><div className="section-heading"><div><h2>Inventory management</h2><p>Factory-wise raw material stock and movement register</p></div><div className="inventory-actions"><button className="secondary-btn" onClick={() => { setInventoryItemFormOpen(!inventoryItemFormOpen); setStockMovementFormOpen(false); setError(''); setNotice('') }}><Plus size={16} /> New item</button><button className="primary-btn" onClick={() => { setStockMovementFormOpen(!stockMovementFormOpen); setInventoryItemFormOpen(false); setError(''); setNotice('') }}><Plus size={16} /> Stock movement</button></div></div>
+          <div className="expense-summary"><div><span>Inventory items</span><strong>{inventoryItems.length}</strong></div><div><span>Low stock</span><strong>{inventoryItems.filter(i => { const balance = inventoryTransactions.filter(t => t.item_id === i.id).reduce((sum,t) => sum + (['purchase','adjustment_in'].includes(t.transaction_type) ? Number(t.quantity) : -Number(t.quantity)), 0); return balance <= Number(i.reorder_level) }).length}</strong></div><div><span>Movements loaded</span><strong>{inventoryTransactions.length}</strong></div></div>
+          {inventoryItemFormOpen && <form className="record-form" onSubmit={addInventoryItem}><label>Item name *<input value={inventoryItemForm.item_name} onChange={e => setInventoryItemForm({ ...inventoryItemForm, item_name: e.target.value })} placeholder="e.g. Firewood" required /></label><label>Category *<select value={inventoryItemForm.category} onChange={e => setInventoryItemForm({ ...inventoryItemForm, category: e.target.value })}>{purchaseCategories.map(x => <option key={x}>{x}</option>)}</select></label><label>Unit *<select value={inventoryItemForm.unit} onChange={e => setInventoryItemForm({ ...inventoryItemForm, unit: e.target.value })}>{purchaseUnits.map(x => <option key={x}>{x}</option>)}</select></label><label>Low-stock / reorder level<input type="number" min="0" step="0.001" value={inventoryItemForm.reorder_level} onChange={e => setInventoryItemForm({ ...inventoryItemForm, reorder_level: e.target.value })} /></label><div className="form-actions"><button className="primary-btn" type="submit" disabled={busy}>{busy ? 'Saving…' : 'Create item'}</button><button className="secondary-btn" type="button" onClick={() => setInventoryItemFormOpen(false)}>Cancel</button></div></form>}
+          {stockMovementFormOpen && <form className="record-form" onSubmit={addStockMovement}><label>Item *<select value={stockMovementForm.item_id} onChange={e => setStockMovementForm({ ...stockMovementForm, item_id: e.target.value })} required><option value="">Select item</option>{inventoryItems.map(i => <option key={i.id} value={i.id}>{i.item_name} ({i.unit})</option>)}</select></label><label>Movement type *<select value={stockMovementForm.transaction_type} onChange={e => setStockMovementForm({ ...stockMovementForm, transaction_type: e.target.value })}><option value="consumption">Consumption / stock out</option><option value="adjustment_in">Opening stock / stock in</option><option value="adjustment_out">Stock correction / stock out</option></select></label><label>Quantity *<input type="number" min="0.001" step="0.001" value={stockMovementForm.quantity} onChange={e => setStockMovementForm({ ...stockMovementForm, quantity: e.target.value })} required /></label><label>Date *<input type="date" value={stockMovementForm.transaction_date} onChange={e => setStockMovementForm({ ...stockMovementForm, transaction_date: e.target.value })} required /></label><label className="wide-field">Notes<textarea rows={2} value={stockMovementForm.notes} onChange={e => setStockMovementForm({ ...stockMovementForm, notes: e.target.value })} /></label><div className="form-actions"><button className="primary-btn" type="submit" disabled={busy || !inventoryItems.length}>{busy ? 'Saving…' : 'Save movement'}</button><button className="secondary-btn" type="button" onClick={() => setStockMovementFormOpen(false)}>Cancel</button></div></form>}
+          <div className="table-toolbar"><span>{inventoryItems.length} stock items</span><span>Balances from purchases and stock movements</span></div>
+          <div className="table-scroll"><table className="records-table"><thead><tr><th>Item</th><th>Category</th><th>Available stock</th><th>Reorder level</th><th>Status</th></tr></thead><tbody>{inventoryItems.map(i => { const balance = inventoryTransactions.filter(t => t.item_id === i.id).reduce((sum,t) => sum + (['purchase','adjustment_in'].includes(t.transaction_type) ? Number(t.quantity) : -Number(t.quantity)), 0); const low = balance <= Number(i.reorder_level); return <tr key={i.id}><td><strong>{i.item_name}</strong></td><td>{i.category}</td><td>{balance.toLocaleString('en-IN', { maximumFractionDigits: 3 })} {i.unit}</td><td>{Number(i.reorder_level).toLocaleString('en-IN', { maximumFractionDigits: 3 })} {i.unit}</td><td><span className={'stock-status ' + (low ? 'low' : 'normal')}>{low ? 'Low stock' : 'In stock'}</span></td></tr> })}</tbody></table>{!inventoryItems.length && <div className="empty-state"><Boxes size={25} /><strong>No inventory items yet</strong><span>Record a purchase to create a stock item automatically, or add an item and enter opening stock.</span></div>}</div>
+          <div className="table-toolbar"><strong>Recent stock movements</strong><span>Latest 500</span></div><div className="table-scroll"><table className="records-table"><thead><tr><th>Date</th><th>Item</th><th>Movement</th><th>Quantity</th><th>Notes</th></tr></thead><tbody>{inventoryTransactions.slice(0,100).map(t => { const item = inventoryItems.find(i => i.id === t.item_id); return <tr key={t.id}><td>{t.transaction_date}</td><td>{item?.item_name ?? 'Inventory item'}</td><td>{t.transaction_type.replaceAll('_',' ')}</td><td>{Number(t.quantity).toLocaleString('en-IN', { maximumFractionDigits: 3 })} {item?.unit ?? ''}</td><td>{t.notes || '—'}</td></tr> })}</tbody></table>{!inventoryTransactions.length && <div className="empty-state"><Package size={25} /><strong>No stock movements yet</strong><span>Purchases will appear here automatically.</span></div>}</div>
         </section>}
         {page === 'purchases' && <section className="panel data-panel"><div className="section-heading"><div><h2>Purchase management</h2><p>Record factory materials, suppliers, invoices and GST-inclusive totals</p></div><button className="primary-btn" onClick={() => { setPurchaseFormOpen(!purchaseFormOpen); setError(''); setNotice('') }}><Plus size={16} /> Add purchase</button></div>
           <div className="expense-summary"><div><span>This month</span><strong>₹{purchases.filter(x => x.purchase_date.slice(0, 7) === today().slice(0, 7)).reduce((sum, x) => sum + Number(x.total_amount), 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</strong></div><div><span>Today</span><strong>₹{purchases.filter(x => x.purchase_date === today()).reduce((sum, x) => sum + Number(x.total_amount), 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</strong></div><div><span>Records</span><strong>{purchases.length}</strong></div></div>
