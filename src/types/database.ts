@@ -737,6 +737,78 @@ export type Database = {
           },
         ]
       }
+      factory_documents: {
+        Row: {
+          created_at: string
+          document_category: string
+          document_number: string | null
+          document_title: string
+          expiry_date: string | null
+          factory_id: string
+          file_size_bytes: number
+          id: string
+          issue_date: string | null
+          mime_type: string
+          notes: string | null
+          organization_id: string
+          original_file_name: string
+          storage_path: string
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          document_category?: string
+          document_number?: string | null
+          document_title: string
+          expiry_date?: string | null
+          factory_id: string
+          file_size_bytes: number
+          id?: string
+          issue_date?: string | null
+          mime_type: string
+          notes?: string | null
+          organization_id: string
+          original_file_name: string
+          storage_path: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          document_category?: string
+          document_number?: string | null
+          document_title?: string
+          expiry_date?: string | null
+          factory_id?: string
+          file_size_bytes?: number
+          id?: string
+          issue_date?: string | null
+          mime_type?: string
+          notes?: string | null
+          organization_id?: string
+          original_file_name?: string
+          storage_path?: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "factory_documents_factory_scope_fk"
+            columns: ["factory_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "factories"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "factory_documents_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       machines: {
         Row: {
           created_at: string
