@@ -737,6 +737,145 @@ export type Database = {
           },
         ]
       }
+      machines: {
+        Row: {
+          created_at: string
+          factory_id: string
+          id: string
+          installation_date: string | null
+          machine_code: string
+          machine_name: string
+          machine_type: string
+          manufacturer: string | null
+          model: string | null
+          notes: string | null
+          organization_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          factory_id: string
+          id?: string
+          installation_date?: string | null
+          machine_code: string
+          machine_name: string
+          machine_type?: string
+          manufacturer?: string | null
+          model?: string | null
+          notes?: string | null
+          organization_id: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          factory_id?: string
+          id?: string
+          installation_date?: string | null
+          machine_code?: string
+          machine_name?: string
+          machine_type?: string
+          manufacturer?: string | null
+          model?: string | null
+          notes?: string | null
+          organization_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "machines_factory_scope_fk"
+            columns: ["factory_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "factories"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "machines_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      machine_maintenance_logs: {
+        Row: {
+          created_at: string
+          downtime_hours: number
+          factory_id: string
+          id: string
+          issue_reported: string | null
+          machine_id: string
+          maintenance_cost: number
+          maintenance_date: string
+          maintenance_number: string
+          maintenance_type: string
+          next_service_date: string | null
+          notes: string | null
+          organization_id: string
+          status: string
+          technician_name: string | null
+          work_performed: string | null
+        }
+        Insert: {
+          created_at?: string
+          downtime_hours?: number
+          factory_id: string
+          id?: string
+          issue_reported?: string | null
+          machine_id: string
+          maintenance_cost?: number
+          maintenance_date?: string
+          maintenance_number: string
+          maintenance_type?: string
+          next_service_date?: string | null
+          notes?: string | null
+          organization_id: string
+          status?: string
+          technician_name?: string | null
+          work_performed?: string | null
+        }
+        Update: {
+          created_at?: string
+          downtime_hours?: number
+          factory_id?: string
+          id?: string
+          issue_reported?: string | null
+          machine_id?: string
+          maintenance_cost?: number
+          maintenance_date?: string
+          maintenance_number?: string
+          maintenance_type?: string
+          next_service_date?: string | null
+          notes?: string | null
+          organization_id?: string
+          status?: string
+          technician_name?: string | null
+          work_performed?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "machine_maintenance_factory_scope_fk"
+            columns: ["factory_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "factories"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "machine_maintenance_machine_scope_fk"
+            columns: ["machine_id", "organization_id", "factory_id"]
+            isOneToOne: false
+            referencedRelation: "machines"
+            referencedColumns: ["id", "organization_id", "factory_id"]
+          },
+          {
+            foreignKeyName: "machine_maintenance_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       quality_inspections: {
         Row: {
           accepted_weight_kg: number
