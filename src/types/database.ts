@@ -71,6 +71,103 @@ export type Database = {
           },
         ]
       }
+      employees: {
+        Row: {
+          created_at: string
+          date_of_joining: string
+          designation: string
+          employee_code: string
+          factory_id: string
+          full_name: string
+          id: string
+          is_active: boolean
+          organization_id: string
+          phone: string | null
+          salary_rate: number
+          salary_type: string
+        }
+        Insert: {
+          created_at?: string
+          date_of_joining?: string
+          designation: string
+          employee_code: string
+          factory_id: string
+          full_name: string
+          id?: string
+          is_active?: boolean
+          organization_id: string
+          phone?: string | null
+          salary_rate: number
+          salary_type?: string
+        }
+        Update: {
+          created_at?: string
+          date_of_joining?: string
+          designation?: string
+          employee_code?: string
+          factory_id?: string
+          full_name?: string
+          id?: string
+          is_active?: boolean
+          organization_id?: string
+          phone?: string | null
+          salary_rate?: number
+          salary_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employees_factory_org_fk"
+            columns: ["factory_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "factories"
+            referencedColumns: ["id", "organization_id"]
+          }
+        ]
+      }
+      attendance_records: {
+        Row: {
+          attendance_date: string
+          created_at: string
+          employee_id: string
+          factory_id: string
+          id: string
+          notes: string | null
+          organization_id: string
+          overtime_hours: number
+          status: string
+        }
+        Insert: {
+          attendance_date?: string
+          created_at?: string
+          employee_id: string
+          factory_id: string
+          id?: string
+          notes?: string | null
+          organization_id: string
+          overtime_hours?: number
+          status: string
+        }
+        Update: {
+          attendance_date?: string
+          created_at?: string
+          employee_id?: string
+          factory_id?: string
+          id?: string
+          notes?: string | null
+          organization_id?: string
+          overtime_hours?: number
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_employee_scope_fk"
+            columns: ["employee_id", "organization_id", "factory_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id", "organization_id", "factory_id"]
+          }
+        ]
+      }
       customers: {
         Row: {
           address: string | null
