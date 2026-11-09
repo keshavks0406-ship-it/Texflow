@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { Activity, ArrowUpRight, Bell, Boxes, Building2, CalendarDays, ChevronDown, CircleHelp, Factory, Languages, LogOut, Menu, Package, Plus, Search, Settings, ShieldCheck, Users, Wallet, X, Eye, EyeOff, ClipboardList, UserRound, Truck, Receipt } from 'lucide-react'
+import { Activity, ArrowUpRight, Bell, Boxes, Building2, CalendarDays, ChevronDown, CircleHelp, Factory, Languages, LogOut, Menu, Package, Plus, Search, Settings, ShieldCheck, Users, Wallet, X, Eye, EyeOff, ClipboardList, UserRound, Truck, Receipt, Flame } from 'lucide-react'
 import type { User } from '@supabase/supabase-js'
 import type { Tables } from './types/database'
 import { isSupabaseConfigured, supabase } from './lib/supabase'
 
 type Language = 'en' | 'ta'
-type Page = 'overview' | 'customers' | 'orders' | 'production' | 'dispatch' | 'expenses' | 'purchases' | 'inventory'
+type Page = 'overview' | 'customers' | 'orders' | 'production' | 'dispatch' | 'expenses' | 'purchases' | 'inventory' | 'boiler'
 type Organization = Tables<'organizations'>
 type FactoryRow = Tables<'factories'>
 type Customer = Tables<'customers'>
@@ -16,6 +16,8 @@ type ExpenseRow = Tables<'expenses'>
 type PurchaseRow = Tables<'purchases'>
 type InventoryItem = Tables<'inventory_items'>
 type InventoryTransaction = Tables<'inventory_transactions'>
+type BoilerLog = Tables<'boiler_logs'>
+const emptyBoilerLog = { log_date: today(), firewood_consumed_kg: '', boiler_operating_hours: '', steam_generated_kg: '', fabric_processed_kg: '', fuel_cost: '', notes: '' }
 const today = () => new Date().toLocaleDateString('en-CA')
 const emptyCustomer = { name: '', phone: '', email: '', gstin: '', address: '' }
 const emptyOrder = { order_number: '', customer_id: '', fabric_type: 'Knitted fabric', received_weight_kg: '', expected_delivery_date: '', notes: '' }
@@ -64,6 +66,10 @@ export default function App() {
   const [purchases, setPurchases] = useState<PurchaseRow[]>([])
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([])
   const [inventoryTransactions, setInventoryTransactions] = useState<InventoryTransaction[]>([])
+  const [boilerLogs, setBoilerLogs] = useState<BoilerLog[]>([])
+  const [boilerFormOpen, setBoilerFormOpen] = useState(false)
+  const [boilerForm, setBoilerForm] = useState(emptyBoilerLog)
+  const [boilerMonth, setBoilerMonth] = useState(today().slice(0, 7))
   const [inventoryItemFormOpen, setInventoryItemFormOpen] = useState(false)
   const [stockMovementFormOpen, setStockMovementFormOpen] = useState(false)
   const [inventoryItemForm, setInventoryItemForm] = useState(emptyInventoryItem)
@@ -166,6 +172,13 @@ export default function App() {
     setInventoryTransactions(movements.data ?? [])
   }
 
+  async function loadBoilerLogs() {
+    if (!supabase || !selectedOrg || !selectedFactory) { setBoilerLogs([]); return }
+    const { data, error: e } = await supabase.from('boiler_logs').select('*').eq('organization_id', selectedOrg).eq('factory_id', selectedFactory).order('log_date', { ascending: false }).limit(500)
+    if (e) throw e
+    setBoilerLogs(data ?? [])
+  }
+
   async function loadPurchaseRecords() {
     if (!supabase || !selectedOrg || !selectedFactory) { setPurchases([]); return }
     const { data, error: e } = await supabase.from('purchases').select('*').eq('organization_id', selectedOrg).eq('factory_id', selectedFactory).order('purchase_date', { ascending: false }).order('created_at', { ascending: false }).limit(500)
@@ -207,9 +220,9 @@ export default function App() {
   }, [user, selectedOrg])
 
   useEffect(() => {
-    if (!user || !selectedOrg || !selectedFactory) { setProductionEntries([]); return }
+    if (!user || !selectedOrg || !selectedFactory) { setProductionEntries([]); setBoilerLogs([]); return }
     let alive = true
-    loadProductionEntries().catch(e => { if (alive) setError(e instanceof Error ? e.message : 'Could not load production entries.') })
+    Promise.all([loadProductionEntries(), loadBoilerLogs()]).catch(e => { if (alive) setError(e instanceof Error ? e.message : 'Could not load production or boiler records.') })
     return () => { alive = false }
   }, [user, selectedOrg, selectedFactory])
 
@@ -422,6 +435,29 @@ export default function App() {
     finally { setBusy(false) }
   }
 
+  async function addBoilerLog(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!supabase || !selectedOrg || !selectedFactory) return
+    setBusy(true); setError(''); setNotice('')
+    try {
+      const firewood = Number(boilerForm.firewood_consumed_kg)
+      const hours = Number(boilerForm.boiler_operating_hours)
+      const fabric = Number(boilerForm.fabric_processed_kg)
+      const fuelCost = Number(boilerForm.fuel_cost)
+      const steam = boilerForm.steam_generated_kg.trim() === '' ? null : Number(boilerForm.steam_generated_kg)
+      if (!Number.isFinite(firewood) || firewood < 0) throw new Error('Enter a valid firewood quantity.')
+      if (!Number.isFinite(hours) || hours < 0 || hours > 24) throw new Error('Boiler operating hours must be between 0 and 24.')
+      if (!Number.isFinite(fabric) || fabric < 0) throw new Error('Enter a valid fabric processed quantity.')
+      if (!Number.isFinite(fuelCost) || fuelCost < 0) throw new Error('Enter a valid fuel cost.')
+      if (steam !== null && (!Number.isFinite(steam) || steam < 0)) throw new Error('Enter a valid steam quantity.')
+      const { error: e } = await supabase.from('boiler_logs').upsert({ organization_id: selectedOrg, factory_id: selectedFactory, log_date: boilerForm.log_date, firewood_consumed_kg: firewood, boiler_operating_hours: hours, steam_generated_kg: steam, fabric_processed_kg: fabric, fuel_cost: fuelCost, notes: boilerForm.notes.trim() || null }, { onConflict: 'factory_id,log_date' })
+      if (e) throw e
+      setBoilerForm(emptyBoilerLog); setBoilerFormOpen(false)
+      await loadBoilerLogs(); setNotice('Boiler and fuel record saved. Existing entry for the same date was updated.')
+    } catch (e) { setError(e instanceof Error ? e.message : 'Could not save boiler log.') }
+    finally { setBusy(false) }
+  }
+
   async function addPurchase(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!supabase || !selectedOrg || !selectedFactory) return
@@ -515,13 +551,14 @@ export default function App() {
         <button className={'nav-link ' + (page === 'expenses' ? 'active' : '')} onClick={() => { setPage('expenses'); setMenuOpen(false) }}><Receipt size={18} />Expenses</button>
         <button className={'nav-link ' + (page === 'purchases' ? 'active' : '')} onClick={() => { setPage('purchases'); setMenuOpen(false) }}><Package size={18} />Purchases</button>
         <button className={'nav-link ' + (page === 'inventory' ? 'active' : '')} onClick={() => { setPage('inventory'); setMenuOpen(false) }}><Boxes size={18} />Inventory</button>
+        <button className={'nav-link ' + (page === 'boiler' ? 'active' : '')} onClick={() => { setPage('boiler'); setMenuOpen(false) }}><Flame size={18} />Boiler & fuel</button>
         {['Employees', 'Accounts', 'Reports'].map(label => <button className="nav-link" key={label} onClick={() => setNotice(label + ' will be developed in the next stage.')}><Package size={18} />{label}</button>)}
       </nav>
       <div className="sidebar-bottom"><button className="nav-link" onClick={() => setNotice('Settings will be added in a later stage.')}><Settings size={18} />Settings</button><button className="nav-link" onClick={() => setNotice('Help and support will be added in a later stage.')}><CircleHelp size={18} />Help & support</button><div className="profile-row"><div className="avatar">{(user.email?.[0] ?? 'U').toUpperCase()}</div><div><strong>{user.user_metadata?.full_name || user.email}</strong><small>{user.email}</small></div><button className="icon-btn" aria-label={tr.signout} onClick={signOut}><LogOut size={17} /></button></div></div>
     </aside>
     {menuOpen && <button className="scrim" aria-label="Close menu" onClick={() => setMenuOpen(false)} />}
     <main className="main-area">
-      <header className="topbar"><button className="icon-btn mobile-menu" aria-label="Open menu" onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <X /> : <Menu />}</button><div className="breadcrumb">{currentOrg?.name ?? 'Workspace'} <span>/</span> {page === 'overview' ? tr.overview : page === 'customers' ? tr.customers : page === 'orders' ? tr.orders : page === 'production' ? 'Production' : page === 'dispatch' ? 'Dispatch' : page === 'expenses' ? 'Expenses' : page === 'purchases' ? 'Purchases' : 'Inventory'}</div><div className="top-actions"><LanguageSwitch language={language} setLanguage={setLanguage} /><button className="icon-btn notification" aria-label="Notifications"><Bell size={19} /></button><div className="top-avatar">{(user.email?.[0] ?? 'U').toUpperCase()}</div></div></header>
+      <header className="topbar"><button className="icon-btn mobile-menu" aria-label="Open menu" onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <X /> : <Menu />}</button><div className="breadcrumb">{currentOrg?.name ?? 'Workspace'} <span>/</span> {page === 'overview' ? tr.overview : page === 'customers' ? tr.customers : page === 'orders' ? tr.orders : page === 'production' ? 'Production' : page === 'dispatch' ? 'Dispatch' : page === 'expenses' ? 'Expenses' : page === 'purchases' ? 'Purchases' : page === 'inventory' ? 'Inventory' : 'Boiler & fuel'}</div><div className="top-actions"><LanguageSwitch language={language} setLanguage={setLanguage} /><button className="icon-btn notification" aria-label="Notifications"><Bell size={19} /></button><div className="top-avatar">{(user.email?.[0] ?? 'U').toUpperCase()}</div></div></header>
       <div className="content">
         {page === 'overview' && <>
           <div className="welcome-row"><div><span className="eyebrow">LIVE WORKSPACE · {new Date().toLocaleDateString('en-IN', { dateStyle: 'full' })}</span><h1>Welcome, {user.user_metadata?.full_name || user.email?.split('@')[0]} <span>✦</span></h1><p>Here is the live overview of your factory workspace.</p></div><div className="demo-tag"><span />Connected</div></div>
@@ -558,6 +595,28 @@ export default function App() {
           </form>}
           <div className="table-toolbar"><span>{productionEntries.length} production entries</span><span>Latest 200 records</span></div>
           <div className="table-scroll"><table className="records-table production-table"><thead><tr><th>Date</th><th>Job order</th><th>Machine</th><th>Shift</th><th>Input (kg)</th><th>Output (kg)</th><th>Loss (kg)</th><th>Loss (%)</th></tr></thead><tbody>{productionEntries.map(entry => { const loss = Number(entry.input_weight_kg) - Number(entry.output_weight_kg); const pct = Number(entry.input_weight_kg) > 0 ? loss / Number(entry.input_weight_kg) * 100 : 0; const order = jobOrders.find(o => o.id === entry.job_order_id); return <tr key={entry.id}><td>{entry.production_date}</td><td><strong>{order?.order_number ?? 'Job order'}</strong></td><td>{entry.machine_name || '—'}</td><td>{entry.shift || '—'}</td><td>{Number(entry.input_weight_kg).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td><td>{Number(entry.output_weight_kg).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td><td>{loss.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td><td><strong>{pct.toFixed(2)}%</strong></td></tr> })}</tbody></table>{!productionEntries.length && <div className="empty-state"><Factory size={25} /><strong>No production entries yet</strong><span>Choose an open job order and record the input and output weights.</span></div>}</div>
+        </section>}
+        {page === 'boiler' && <section className="panel data-panel">
+          <div className="section-heading"><div><h2>Boiler & fuel tracking</h2><p>Daily firewood use, boiler hours, steam output and fabric-processing cost</p></div><button className="primary-btn" onClick={() => { setBoilerFormOpen(!boilerFormOpen); setError(''); setNotice('') }}><Plus size={16} /> Daily boiler entry</button></div>
+          <div className="expense-summary">
+            <div><span>Firewood this month</span><strong>{boilerLogs.filter(x => x.log_date.slice(0,7) === boilerMonth).reduce((n,x) => n + Number(x.firewood_consumed_kg),0).toLocaleString('en-IN',{maximumFractionDigits:1})} kg</strong></div>
+            <div><span>Fuel cost this month</span><strong>₹{boilerLogs.filter(x => x.log_date.slice(0,7) === boilerMonth).reduce((n,x) => n + Number(x.fuel_cost),0).toLocaleString('en-IN',{maximumFractionDigits:2})}</strong></div>
+            <div><span>Fabric processed</span><strong>{boilerLogs.filter(x => x.log_date.slice(0,7) === boilerMonth).reduce((n,x) => n + Number(x.fabric_processed_kg),0).toLocaleString('en-IN',{maximumFractionDigits:1})} kg</strong></div>
+            <div><span>Fuel cost / kg fabric</span><strong>₹{(() => { const rows=boilerLogs.filter(x=>x.log_date.slice(0,7)===boilerMonth); const kg=rows.reduce((n,x)=>n+Number(x.fabric_processed_kg),0); return kg ? (rows.reduce((n,x)=>n+Number(x.fuel_cost),0)/kg).toFixed(2) : '0.00' })()}</strong></div>
+          </div>
+          <div className="table-toolbar"><label>Report month <input type="month" value={boilerMonth} onChange={e=>setBoilerMonth(e.target.value)} /></label><span>One daily entry per factory; saving the same date updates it</span></div>
+          {boilerFormOpen && <form className="record-form" onSubmit={addBoilerLog}>
+            <label>Date *<input type="date" value={boilerForm.log_date} onChange={e=>setBoilerForm({...boilerForm,log_date:e.target.value})} required /></label>
+            <label>Firewood consumed (kg) *<input type="number" min="0" step="0.1" value={boilerForm.firewood_consumed_kg} onChange={e=>setBoilerForm({...boilerForm,firewood_consumed_kg:e.target.value})} required /></label>
+            <label>Boiler operating hours *<input type="number" min="0" max="24" step="0.25" value={boilerForm.boiler_operating_hours} onChange={e=>setBoilerForm({...boilerForm,boiler_operating_hours:e.target.value})} required /></label>
+            <label>Steam generated (kg)<input type="number" min="0" step="0.1" value={boilerForm.steam_generated_kg} onChange={e=>setBoilerForm({...boilerForm,steam_generated_kg:e.target.value})} placeholder="Optional" /></label>
+            <label>Fabric processed (kg) *<input type="number" min="0" step="0.1" value={boilerForm.fabric_processed_kg} onChange={e=>setBoilerForm({...boilerForm,fabric_processed_kg:e.target.value})} required /></label>
+            <label>Firewood cost for the day (₹) *<input type="number" min="0" step="0.01" value={boilerForm.fuel_cost} onChange={e=>setBoilerForm({...boilerForm,fuel_cost:e.target.value})} required /></label>
+            <label className="wide-field">Notes<textarea rows={2} value={boilerForm.notes} onChange={e=>setBoilerForm({...boilerForm,notes:e.target.value})} placeholder="Wood quality, downtime, boiler observations…" /></label>
+            <div className="form-actions"><button className="primary-btn" type="submit" disabled={busy}>{busy?'Saving…':'Save daily record'}</button><button className="secondary-btn" type="button" onClick={()=>setBoilerFormOpen(false)}>Cancel</button></div>
+          </form>}
+          <div className="table-toolbar"><strong>Daily boiler register</strong><span>{boilerLogs.filter(x=>x.log_date.slice(0,7)===boilerMonth).length} records in selected month</span></div>
+          <div className="table-scroll"><table className="records-table boiler-table"><thead><tr><th>Date</th><th>Firewood (kg)</th><th>Hours</th><th>Steam (kg)</th><th>Fabric (kg)</th><th>Fuel cost</th><th>Cost / kg</th></tr></thead><tbody>{boilerLogs.filter(x=>x.log_date.slice(0,7)===boilerMonth).map(x=><tr key={x.id}><td>{x.log_date}</td><td>{Number(x.firewood_consumed_kg).toLocaleString('en-IN')}</td><td>{Number(x.boiler_operating_hours).toFixed(2)}</td><td>{x.steam_generated_kg===null?'—':Number(x.steam_generated_kg).toLocaleString('en-IN')}</td><td>{Number(x.fabric_processed_kg).toLocaleString('en-IN')}</td><td>₹{Number(x.fuel_cost).toLocaleString('en-IN',{maximumFractionDigits:2})}</td><td>₹{Number(x.fabric_processed_kg)>0?(Number(x.fuel_cost)/Number(x.fabric_processed_kg)).toFixed(2):'—'}</td></tr>)}</tbody></table>{!boilerLogs.filter(x=>x.log_date.slice(0,7)===boilerMonth).length&&<div className="empty-state"><Flame size={25}/><strong>No boiler records for this month</strong><span>Add a daily record to start tracking firewood and fuel cost per kg of fabric.</span></div>}</div>
         </section>}
         {page === 'inventory' && <section className="panel data-panel"><div className="section-heading"><div><h2>Inventory management</h2><p>Factory-wise raw material stock and movement register</p></div><div className="inventory-actions"><button className="secondary-btn" onClick={() => { setInventoryItemFormOpen(!inventoryItemFormOpen); setStockMovementFormOpen(false); setError(''); setNotice('') }}><Plus size={16} /> New item</button><button className="primary-btn" onClick={() => { setStockMovementFormOpen(!stockMovementFormOpen); setInventoryItemFormOpen(false); setError(''); setNotice('') }}><Plus size={16} /> Stock movement</button></div></div>
           <div className="expense-summary"><div><span>Inventory items</span><strong>{inventoryItems.length}</strong></div><div><span>Low stock</span><strong>{inventoryItems.filter(i => { const balance = inventoryTransactions.filter(t => t.item_id === i.id).reduce((sum,t) => sum + (['purchase','adjustment_in'].includes(t.transaction_type) ? Number(t.quantity) : -Number(t.quantity)), 0); return balance <= Number(i.reorder_level) }).length}</strong></div><div><span>Movements loaded</span><strong>{inventoryTransactions.length}</strong></div></div>
