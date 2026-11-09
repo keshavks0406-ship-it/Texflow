@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { ClipboardCheck, Plus, ShieldCheck, AlertTriangle, RefreshCw } from 'lucide-react'
+import { ClipboardCheck, Plus, ShieldCheck } from 'lucide-react'
 import type { Tables } from '../types/database'
 import { supabase } from '../lib/supabase'
 
