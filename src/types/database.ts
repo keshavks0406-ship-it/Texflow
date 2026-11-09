@@ -14,6 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
+      boiler_logs: {
+        Row: {
+          boiler_operating_hours: number
+          created_at: string
+          fabric_processed_kg: number
+          factory_id: string
+          firewood_consumed_kg: number
+          fuel_cost: number
+          id: string
+          log_date: string
+          notes: string | null
+          organization_id: string
+          steam_generated_kg: number | null
+        }
+        Insert: {
+          boiler_operating_hours?: number
+          created_at?: string
+          fabric_processed_kg: number
+          factory_id: string
+          firewood_consumed_kg: number
+          fuel_cost?: number
+          id?: string
+          log_date?: string
+          notes?: string | null
+          organization_id: string
+          steam_generated_kg?: number | null
+        }
+        Update: {
+          boiler_operating_hours?: number
+          created_at?: string
+          fabric_processed_kg?: number
+          factory_id?: string
+          firewood_consumed_kg?: number
+          fuel_cost?: number
+          id?: string
+          log_date?: string
+          notes?: string | null
+          organization_id?: string
+          steam_generated_kg?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "boiler_logs_factory_org_fk"
+            columns: ["factory_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "factories"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "boiler_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           address: string | null
