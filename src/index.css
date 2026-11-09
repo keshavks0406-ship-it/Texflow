@@ -203,3 +203,8 @@ footer{display:flex;justify-content:space-between;padding:25px 2px 0;color:#9aac
 /* Purchase register */
 .purchase-preview{display:flex;align-items:center;gap:18px;flex-wrap:wrap;grid-column:1/-1;padding:13px 15px;border:1px solid #e5eee9;border-radius:9px;background:#f4f9f6;color:#637a72;font-size:11px}.purchase-preview strong{color:#254b43;font-size:14px;margin-left:auto}
 @media(max-width:600px){.purchase-preview{gap:9px;flex-direction:column;align-items:flex-start}.purchase-preview strong{margin-left:0}}
+
+
+/* Inventory stock register */
+.inventory-actions{display:flex;gap:8px;flex-wrap:wrap}.stock-status{display:inline-flex;padding:5px 9px;border-radius:20px;font-size:10px;font-weight:700}.stock-status.low{background:#fff2e6;color:#a65b19}.stock-status.normal{background:#eaf6ef;color:#27734c}
+@media(max-width:600px){.inventory-actions{width:100%}.inventory-actions button{flex:1}}
