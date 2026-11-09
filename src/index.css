@@ -265,3 +265,18 @@ footer{display:flex;justify-content:space-between;padding:25px 2px 0;color:#9aac
 .report-muted { color:var(--muted,#64748b); font-size:13px; }
 @media(max-width:900px){.reports-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
 @media(max-width:560px){.reports-grid{gap:8px;}.report-card{padding:12px;}.report-card strong{font-size:17px;}.reports-lower{grid-template-columns:1fr;}.reports-filter{align-items:stretch;}.reports-filter label{justify-content:space-between;}}
+
+
+/* Factory quality inspection */
+.quality-management { display:flex; flex-direction:column; gap:16px; }
+.quality-management .section-heading { align-items:center; }
+.quality-summary { grid-template-columns:repeat(4,minmax(0,1fr)); }
+.quality-table { min-width:1320px; }
+.quality-status { display:inline-flex; align-items:center; padding:5px 9px; border-radius:999px; font-size:11px; font-weight:700; white-space:nowrap; }
+.quality-approved { background:#e6f5ec; color:#216b43; }
+.quality-rejected { background:#fff0ed; color:#a33b2e; }
+.quality-rework { background:#fff5df; color:#916015; }
+.quality-pending { background:#edf1f5; color:#536477; }
+.quality-management .report-footnote { display:flex; align-items:center; gap:7px; }
+@media(max-width:900px){.quality-summary{grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media(max-width:560px){.quality-summary{grid-template-columns:1fr 1fr;gap:8px}.quality-summary>div{padding:12px}.quality-summary strong{font-size:17px}.quality-management .section-heading{align-items:flex-start;flex-direction:column}.quality-management .section-heading button{width:100%;justify-content:center}}
