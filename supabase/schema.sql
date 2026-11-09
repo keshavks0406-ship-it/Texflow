@@ -1,8 +1,13 @@
 -- TexFlow initial schema
--- Run this file in Supabase Dashboard > SQL Editor.
--- Row Level Security is enabled on every business table.
+-- PostgreSQL 17 / Supabase
+-- Business tables are protected by RLS. Private authorization helpers are
+-- deliberately kept outside the exposed public schema.
 
 create extension if not exists pgcrypto;
+
+create schema if not exists private;
+revoke all on schema private from public;
+grant usage on schema private to authenticated;
 
 create table if not exists public.organizations (
   id uuid primary key default gen_random_uuid(),
@@ -109,29 +114,32 @@ create index if not exists idx_production_org_date on public.production_entries(
 create index if not exists idx_dispatches_org_date on public.dispatches(organization_id, dispatch_date);
 create index if not exists idx_expenses_org_date on public.expenses(organization_id, expense_date);
 
--- Security-definer membership check avoids recursive RLS policy evaluation.
-create or replace function public.is_org_member(target_org uuid)
+-- SECURITY DEFINER is required only for these tightly scoped helpers:
+-- membership lookup avoids recursive RLS; trigger creates initial owner row.
+-- Both are outside the exposed public schema and use an empty search_path.
+create or replace function private.is_org_member(target_org uuid)
 returns boolean
 language sql
 stable
 security definer
-set search_path = public
+set search_path = ''
 as $$
   select exists (
-    select 1 from public.organization_members
-    where organization_id = target_org and user_id = auth.uid()
+    select 1
+    from public.organization_members
+    where organization_id = target_org
+      and user_id = (select auth.uid())
   );
 $$;
 
-revoke all on function public.is_org_member(uuid) from public;
-grant execute on function public.is_org_member(uuid) to authenticated;
+revoke all on function private.is_org_member(uuid) from public, anon, authenticated;
+grant execute on function private.is_org_member(uuid) to authenticated;
 
--- Automatically make the creator an owner when creating an organization.
-create or replace function public.add_org_creator_as_owner()
+create or replace function private.add_org_creator_as_owner()
 returns trigger
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 begin
   insert into public.organization_members (organization_id, user_id, role)
@@ -140,10 +148,12 @@ begin
 end;
 $$;
 
+revoke all on function private.add_org_creator_as_owner() from public, anon, authenticated;
+
 drop trigger if exists on_organization_created on public.organizations;
 create trigger on_organization_created
 after insert on public.organizations
-for each row execute function public.add_org_creator_as_owner();
+for each row execute function private.add_org_creator_as_owner();
 
 alter table public.organizations enable row level security;
 alter table public.profiles enable row level security;
@@ -156,53 +166,79 @@ alter table public.dispatches enable row level security;
 alter table public.expenses enable row level security;
 
 create policy "Users can read their organizations" on public.organizations
-for select to authenticated using (public.is_org_member(id));
+for select to authenticated using (private.is_org_member(id));
 create policy "Authenticated users can create their own organization" on public.organizations
-for insert to authenticated with check (created_by = auth.uid());
+for insert to authenticated with check (created_by = (select auth.uid()));
 create policy "Owners and admins can update organizations" on public.organizations
 for update to authenticated using (
-  exists (select 1 from public.organization_members m where m.organization_id = id and m.user_id = auth.uid() and m.role in ('owner','admin'))
-) with check (public.is_org_member(id));
+  exists (
+    select 1 from public.organization_members m
+    where m.organization_id = id
+      and m.user_id = (select auth.uid())
+      and m.role in ('owner','admin')
+  )
+) with check (private.is_org_member(id));
 
 create policy "Users can read own profile" on public.profiles
-for select to authenticated using (id = auth.uid());
+for select to authenticated using (id = (select auth.uid()));
 create policy "Users can create own profile" on public.profiles
-for insert to authenticated with check (id = auth.uid());
+for insert to authenticated with check (id = (select auth.uid()));
 create policy "Users can update own profile" on public.profiles
-for update to authenticated using (id = auth.uid()) with check (id = auth.uid());
+for update to authenticated using (id = (select auth.uid()))
+with check (id = (select auth.uid()));
 
 create policy "Members can view organization membership" on public.organization_members
-for select to authenticated using (public.is_org_member(organization_id));
--- Membership creation is performed by the organization trigger; client-side inserts are intentionally not allowed.
+for select to authenticated using (private.is_org_member(organization_id));
+-- Membership inserts/updates/deletes are intentionally not exposed to clients.
 
 create policy "Members manage factories" on public.factories
-for all to authenticated using (public.is_org_member(organization_id))
-with check (public.is_org_member(organization_id));
+for all to authenticated using (private.is_org_member(organization_id))
+with check (private.is_org_member(organization_id));
 create policy "Members manage customers" on public.customers
-for all to authenticated using (public.is_org_member(organization_id))
-with check (public.is_org_member(organization_id));
+for all to authenticated using (private.is_org_member(organization_id))
+with check (private.is_org_member(organization_id));
 create policy "Members manage job orders" on public.job_orders
-for all to authenticated using (public.is_org_member(organization_id))
+for all to authenticated using (private.is_org_member(organization_id))
 with check (
-  public.is_org_member(organization_id)
-  and exists (select 1 from public.customers c where c.id = customer_id and c.organization_id = job_orders.organization_id)
-  and (factory_id is null or exists (select 1 from public.factories f where f.id = factory_id and f.organization_id = job_orders.organization_id))
+  private.is_org_member(organization_id)
+  and exists (
+    select 1 from public.customers c
+    where c.id = customer_id and c.organization_id = job_orders.organization_id
+  )
+  and (
+    factory_id is null or exists (
+      select 1 from public.factories f
+      where f.id = factory_id and f.organization_id = job_orders.organization_id
+    )
+  )
 );
 create policy "Members manage production entries" on public.production_entries
-for all to authenticated using (public.is_org_member(organization_id))
+for all to authenticated using (private.is_org_member(organization_id))
 with check (
-  public.is_org_member(organization_id)
-  and exists (select 1 from public.job_orders j where j.id = job_order_id and j.organization_id = production_entries.organization_id)
+  private.is_org_member(organization_id)
+  and exists (
+    select 1 from public.job_orders j
+    where j.id = job_order_id and j.organization_id = production_entries.organization_id
+  )
+  and (
+    factory_id is null or exists (
+      select 1 from public.factories f
+      where f.id = factory_id and f.organization_id = production_entries.organization_id
+    )
+  )
 );
 create policy "Members manage dispatches" on public.dispatches
-for all to authenticated using (public.is_org_member(organization_id))
+for all to authenticated using (private.is_org_member(organization_id))
 with check (
-  public.is_org_member(organization_id)
-  and exists (select 1 from public.job_orders j where j.id = job_order_id and j.organization_id = dispatches.organization_id)
+  private.is_org_member(organization_id)
+  and exists (
+    select 1 from public.job_orders j
+    where j.id = job_order_id and j.organization_id = dispatches.organization_id
+  )
 );
 create policy "Members manage expenses" on public.expenses
-for all to authenticated using (public.is_org_member(organization_id))
-with check (public.is_org_member(organization_id));
+for all to authenticated using (private.is_org_member(organization_id))
+with check (private.is_org_member(organization_id));
 
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on public.organizations, public.profiles, public.factories,
