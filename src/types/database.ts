@@ -171,7 +171,7 @@ export type Database = {
           { foreignKeyName: "purchases_factory_id_fkey"; columns: ["factory_id"]; isOneToOne: false; referencedRelation: "factories"; referencedColumns: ["id"]; },
           { foreignKeyName: "purchases_organization_id_fkey"; columns: ["organization_id"]; isOneToOne: false; referencedRelation: "organizations"; referencedColumns: ["id"]; }
         ]
-      }
+      },
       factories: {
         Row: {
           address: string | null
