@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { Plus, Users, CalendarCheck, Wallet } from 'lucide-react'
+import { Plus, Users, CalendarCheck } from 'lucide-react'
 import type { Tables } from '../types/database'
 import { supabase } from '../lib/supabase'
 
@@ -99,7 +99,7 @@ export default function EmployeeManagement({ organizationId, factoryId }: Props)
     finally { setBusy(false) }
   }
 
-  return <section className="panel data-panel">
+  return <section className="panel data-panel employee-management">
     <div className="section-heading"><div><h2>Employee management</h2><p>Factory employee directory, daily attendance and attendance-based wage estimates</p></div><div className="inventory-actions"><button className="secondary-btn" onClick={() => { setEmployeeFormOpen(!employeeFormOpen); setAttendanceFormOpen(false); setError(''); setNotice('') }}><Plus size={16}/> Add employee</button><button className="primary-btn" onClick={() => { setAttendanceFormOpen(!attendanceFormOpen); setEmployeeFormOpen(false); setError(''); setNotice('') }} disabled={!employees.some(e => e.is_active)}><CalendarCheck size={16}/> Mark attendance</button></div></div>
     <div className="expense-summary"><div><span>Active employees</span><strong>{employees.filter(e => e.is_active).length}</strong></div><div><span>Present / half-days in month</span><strong>{presentDays} / {halfDays}</strong></div><div><span>Estimated payable wages</span><strong>{money(payableWage)}</strong></div></div>
     {employeeFormOpen && <form className="record-form" onSubmit={addEmployee}>
