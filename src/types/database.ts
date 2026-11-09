@@ -168,6 +168,117 @@ export type Database = {
           }
         ]
       }
+      account_invoices: {
+        Row: {
+          created_at: string
+          due_date: string | null
+          factory_id: string
+          id: string
+          invoice_date: string
+          invoice_number: string
+          invoice_type: string
+          notes: string | null
+          organization_id: string
+          party_name: string
+          party_type: string
+          subtotal: number
+          tax_amount: number
+          total_amount: number
+        }
+        Insert: {
+          created_at?: string
+          due_date?: string | null
+          factory_id: string
+          id?: string
+          invoice_date?: string
+          invoice_number: string
+          invoice_type: string
+          notes?: string | null
+          organization_id: string
+          party_name: string
+          party_type: string
+          subtotal: number
+          tax_amount?: number
+        }
+        Update: {
+          created_at?: string
+          due_date?: string | null
+          factory_id?: string
+          id?: string
+          invoice_date?: string
+          invoice_number?: string
+          invoice_type?: string
+          notes?: string | null
+          organization_id?: string
+          party_name?: string
+          party_type?: string
+          subtotal?: number
+          tax_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_invoices_factory_org_fk"
+            columns: ["factory_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "factories"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "account_invoices_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      account_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          factory_id: string
+          id: string
+          invoice_id: string
+          notes: string | null
+          organization_id: string
+          payment_date: string
+          payment_mode: string
+          reference_number: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          factory_id: string
+          id?: string
+          invoice_id: string
+          notes?: string | null
+          organization_id: string
+          payment_date?: string
+          payment_mode?: string
+          reference_number?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          factory_id?: string
+          id?: string
+          invoice_id?: string
+          notes?: string | null
+          organization_id?: string
+          payment_date?: string
+          payment_mode?: string
+          reference_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_payments_invoice_scope_fk"
+            columns: ["invoice_id", "organization_id", "factory_id"]
+            isOneToOne: false
+            referencedRelation: "account_invoices"
+            referencedColumns: ["id", "organization_id", "factory_id"]
+          }
+        ]
+      }
       customers: {
         Row: {
           address: string | null
