@@ -147,6 +147,31 @@ export type Database = {
           },
         ]
       }
+      purchases: {
+        Row: {
+          id: string; organization_id: string; factory_id: string; purchase_date: string;
+          supplier_name: string; supplier_phone: string | null; invoice_number: string | null;
+          category: string; item_name: string; quantity: number; unit: string; unit_price: number;
+          gst_percent: number; subtotal: number; gst_amount: number; total_amount: number;
+          payment_mode: string | null; notes: string | null; created_at: string;
+        }
+        Insert: {
+          id?: string; organization_id: string; factory_id: string; purchase_date?: string;
+          supplier_name: string; supplier_phone?: string | null; invoice_number?: string | null;
+          category: string; item_name: string; quantity: number; unit?: string; unit_price: number;
+          gst_percent?: number; payment_mode?: string | null; notes?: string | null; created_at?: string;
+        }
+        Update: {
+          id?: string; organization_id?: string; factory_id?: string; purchase_date?: string;
+          supplier_name?: string; supplier_phone?: string | null; invoice_number?: string | null;
+          category?: string; item_name?: string; quantity?: number; unit?: string; unit_price?: number;
+          gst_percent?: number; payment_mode?: string | null; notes?: string | null; created_at?: string;
+        }
+        Relationships: [
+          { foreignKeyName: "purchases_factory_id_fkey"; columns: ["factory_id"]; isOneToOne: false; referencedRelation: "factories"; referencedColumns: ["id"]; },
+          { foreignKeyName: "purchases_organization_id_fkey"; columns: ["organization_id"]; isOneToOne: false; referencedRelation: "organizations"; referencedColumns: ["id"]; }
+        ]
+      }
       factories: {
         Row: {
           address: string | null
