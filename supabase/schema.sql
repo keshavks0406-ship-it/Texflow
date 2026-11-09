@@ -185,20 +185,20 @@ create policy "Members manage job orders" on public.job_orders
 for all to authenticated using (public.is_org_member(organization_id))
 with check (
   public.is_org_member(organization_id)
-  and exists (select 1 from public.customers c where c.id = customer_id and c.organization_id = organization_id)
-  and (factory_id is null or exists (select 1 from public.factories f where f.id = factory_id and f.organization_id = organization_id))
+  and exists (select 1 from public.customers c where c.id = customer_id and c.organization_id = job_orders.organization_id)
+  and (factory_id is null or exists (select 1 from public.factories f where f.id = factory_id and f.organization_id = job_orders.organization_id))
 );
 create policy "Members manage production entries" on public.production_entries
 for all to authenticated using (public.is_org_member(organization_id))
 with check (
   public.is_org_member(organization_id)
-  and exists (select 1 from public.job_orders j where j.id = job_order_id and j.organization_id = organization_id)
+  and exists (select 1 from public.job_orders j where j.id = job_order_id and j.organization_id = production_entries.organization_id)
 );
 create policy "Members manage dispatches" on public.dispatches
 for all to authenticated using (public.is_org_member(organization_id))
 with check (
   public.is_org_member(organization_id)
-  and exists (select 1 from public.job_orders j where j.id = job_order_id and j.organization_id = organization_id)
+  and exists (select 1 from public.job_orders j where j.id = job_order_id and j.organization_id = dispatches.organization_id)
 );
 create policy "Members manage expenses" on public.expenses
 for all to authenticated using (public.is_org_member(organization_id))
