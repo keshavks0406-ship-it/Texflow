@@ -737,6 +737,91 @@ export type Database = {
           },
         ]
       }
+      quality_inspections: {
+        Row: {
+          accepted_weight_kg: number
+          created_at: string
+          defect_type: string | null
+          factory_id: string
+          fabric_width_cm: number | null
+          gsm: number | null
+          id: string
+          inspected_by: string | null
+          inspected_weight_kg: number
+          inspection_date: string
+          inspection_number: string
+          inspection_stage: string
+          job_order_id: string
+          notes: string | null
+          organization_id: string
+          rejected_weight_kg: number
+          shrinkage_percent: number | null
+          status: string
+        }
+        Insert: {
+          accepted_weight_kg?: number
+          created_at?: string
+          defect_type?: string | null
+          factory_id: string
+          fabric_width_cm?: number | null
+          gsm?: number | null
+          id?: string
+          inspected_by?: string | null
+          inspected_weight_kg: number
+          inspection_date?: string
+          inspection_number: string
+          inspection_stage?: string
+          job_order_id: string
+          notes?: string | null
+          organization_id: string
+          rejected_weight_kg?: number
+          shrinkage_percent?: number | null
+          status?: string
+        }
+        Update: {
+          accepted_weight_kg?: number
+          created_at?: string
+          defect_type?: string | null
+          factory_id?: string
+          fabric_width_cm?: number | null
+          gsm?: number | null
+          id?: string
+          inspected_by?: string | null
+          inspected_weight_kg?: number
+          inspection_date?: string
+          inspection_number?: string
+          inspection_stage?: string
+          job_order_id?: string
+          notes?: string | null
+          organization_id?: string
+          rejected_weight_kg?: number
+          shrinkage_percent?: number | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quality_inspections_factory_scope_fk"
+            columns: ["factory_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "factories"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "quality_inspections_job_scope_fk"
+            columns: ["job_order_id", "organization_id", "factory_id"]
+            isOneToOne: false
+            referencedRelation: "job_orders"
+            referencedColumns: ["id", "organization_id", "factory_id"]
+          },
+          {
+            foreignKeyName: "quality_inspections_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
