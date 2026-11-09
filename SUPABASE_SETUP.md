@@ -1,40 +1,34 @@
 # Connect TexFlow to Supabase
 
-## 1. Create the Supabase project
-1. Open https://supabase.com/dashboard and sign in.
-2. Select **New project** and create a project named **TexFlow**.
-3. Choose a strong database password and save it securely.
-4. Select a region close to your users, such as Mumbai (if available).
-5. Wait for the project to finish provisioning.
+## Existing project
+The TexFlow Supabase project is already created and connected:
+- Project: `Texflow`
+- Region: Sydney (`ap-southeast-2`)
+- Database: PostgreSQL 17
 
-## 2. Create the database tables
-1. Open the TexFlow project in Supabase.
-2. Go to **SQL Editor** and create a new query.
-3. Copy the complete contents of `supabase/schema.sql` from this repository.
-4. Run the SQL.
-5. Confirm that the tables appear under **Table Editor**.
+Do not create a second project for this repository.
 
-The schema enables Row Level Security and scopes factory, customer, job, production, dispatch, and expense records to organization membership. Do not disable RLS.
+## Database
+The initial schema and migrations are stored in `supabase/schema.sql` and `supabase/migrations/`. They create the organization, profile, membership, factory, customer, job-order, production, dispatch, and expense tables. Row Level Security is enabled on every business table. The authorization helpers are in a non-exposed `private` schema.
 
-## 3. Get the browser credentials
-In Supabase, open **Project Settings → API** (or **Data API / API Keys**, depending on the dashboard version).
+The migration has already been applied to the connected TexFlow Supabase project. Do not run the initial migration again manually.
+
+## Browser credentials
+In Supabase, open **Project Settings → API** (or **Data API / API Keys**).
 Copy:
 - Project URL
-- Publishable key (or legacy anon key)
+- Publishable key (recommended; starts with `sb_publishable_`)
 
-Only the publishable/anon key belongs in the browser app. **Never put the service_role key or database password in Vite variables, GitHub, or frontend code.**
+Only the publishable key belongs in the browser app. A legacy anon key is also supported. **Never put the service_role/secret key or database password in Vite variables, GitHub, or frontend code.**
 
-## 4. Configure local development
+## Local development
 1. Copy `.env.example` to `.env.local`.
-2. Replace the placeholders with your Project URL and publishable/anon key.
-3. Restart the Vite dev server.
+2. Set `VITE_SUPABASE_URL` to the TexFlow project URL.
+3. Set `VITE_SUPABASE_PUBLISHABLE_KEY` to the project's publishable key.
+4. Restart the Vite development server.
 
-## 5. Configure deployment
-Add these two environment variables to your hosting provider:
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_ANON_KEY`
+## Deployment
+Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` as environment variables in the hosting provider, then redeploy. Never commit `.env.local` or any secret key.
 
-Then redeploy.
-
-## Current implementation status
-The repository currently contains the Supabase client scaffold, TypeScript data interfaces, and initial secure database schema. The dashboard is still a demo; authentication screens and live CRUD workflows are the next implementation step after the project credentials are configured and the schema is run.
+## Implementation status
+The database and typed Supabase client are scaffolded. Authentication UI, organization onboarding, and live factory/customer/job/production/dispatch/expense workflows are the next application-development stages. The dashboard's sample figures remain demo data until those workflows are implemented.
