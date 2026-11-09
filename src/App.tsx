@@ -1,22 +1,26 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { Activity, ArrowUpRight, Bell, Boxes, Building2, CalendarDays, ChevronDown, CircleHelp, Factory, Languages, LogOut, Menu, Package, Plus, Search, Settings, ShieldCheck, Users, Wallet, X, Eye, EyeOff, ClipboardList, UserRound, Truck } from 'lucide-react'
+import { Activity, ArrowUpRight, Bell, Boxes, Building2, CalendarDays, ChevronDown, CircleHelp, Factory, Languages, LogOut, Menu, Package, Plus, Search, Settings, ShieldCheck, Users, Wallet, X, Eye, EyeOff, ClipboardList, UserRound, Truck, Receipt } from 'lucide-react'
 import type { User } from '@supabase/supabase-js'
 import type { Tables } from './types/database'
 import { isSupabaseConfigured, supabase } from './lib/supabase'
 
 type Language = 'en' | 'ta'
-type Page = 'overview' | 'customers' | 'orders' | 'production' | 'dispatch'
+type Page = 'overview' | 'customers' | 'orders' | 'production' | 'dispatch' | 'expenses'
 type Organization = Tables<'organizations'>
 type FactoryRow = Tables<'factories'>
 type Customer = Tables<'customers'>
 type JobOrder = Tables<'job_orders'>
 type ProductionEntry = Tables<'production_entries'>
 type DispatchRow = Tables<'dispatches'>
+type ExpenseRow = Tables<'expenses'>
 const today = () => new Date().toLocaleDateString('en-CA')
 const emptyCustomer = { name: '', phone: '', email: '', gstin: '', address: '' }
 const emptyOrder = { order_number: '', customer_id: '', fabric_type: 'Knitted fabric', received_weight_kg: '', expected_delivery_date: '', notes: '' }
 const emptyProduction = { job_order_id: '', input_weight_kg: '', output_weight_kg: '', production_date: today(), shift: 'Day', machine_name: 'Syntex A3', notes: '' }
 const emptyDispatch = { job_order_id: '', dispatch_date: today(), weight_kg: '', vehicle_number: '', delivery_note_number: '', notes: '' }
+const expenseCategories = ['Boiler fuel', 'Electricity', 'Labour', 'Maintenance', 'Transport', 'Rent', 'Consumables', 'Water', 'Other']
+const paymentModes = ['Cash', 'UPI', 'Bank transfer', 'Cheque', 'Card']
+const emptyExpense = { expense_date: today(), category: 'Boiler fuel', amount: '', payment_mode: 'Cash', description: '' }
 
 export default function App() {
   const [language, setLanguage] = useState<Language>('en')
@@ -48,6 +52,9 @@ export default function App() {
   const [jobOrders, setJobOrders] = useState<JobOrder[]>([])
   const [productionEntries, setProductionEntries] = useState<ProductionEntry[]>([])
   const [dispatches, setDispatches] = useState<DispatchRow[]>([])
+  const [expenses, setExpenses] = useState<ExpenseRow[]>([])
+  const [expenseFormOpen, setExpenseFormOpen] = useState(false)
+  const [expenseForm, setExpenseForm] = useState(emptyExpense)
   const [dispatchFormOpen, setDispatchFormOpen] = useState(false)
   const [dispatchForm, setDispatchForm] = useState(emptyDispatch)
   const [productionFormOpen, setProductionFormOpen] = useState(false)
@@ -130,6 +137,13 @@ export default function App() {
     setProductionEntries(data ?? [])
   }
 
+  async function loadExpenseRecords() {
+    if (!supabase || !selectedOrg) { setExpenses([]); return }
+    const { data, error: e } = await supabase.from('expenses').select('*').eq('organization_id', selectedOrg).order('expense_date', { ascending: false }).order('created_at', { ascending: false }).limit(500)
+    if (e) throw e
+    setExpenses(data ?? [])
+  }
+
   async function loadDispatchRecords() {
     if (!supabase || !selectedOrg) { setDispatches([]); return }
     const { data, error: e } = await supabase.from('dispatches').select('*').eq('organization_id', selectedOrg).order('dispatch_date', { ascending: false }).order('created_at', { ascending: false }).limit(200)
@@ -152,7 +166,7 @@ export default function App() {
   useEffect(() => {
     if (!user || !selectedOrg) return
     let alive = true
-    Promise.all([loadBusinessRecords(), loadDispatchRecords()]).catch(e => { if (alive) setError(e instanceof Error ? e.message : 'Could not load records.') })
+    Promise.all([loadBusinessRecords(), loadDispatchRecords(), loadExpenseRecords()]).catch(e => { if (alive) setError(e instanceof Error ? e.message : 'Could not load records.') })
     return () => { alive = false }
   }, [user, selectedOrg])
 
@@ -340,6 +354,25 @@ export default function App() {
     finally { setBusy(false) }
   }
 
+  async function addExpense(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!supabase || !selectedOrg) return
+    setBusy(true); setError(''); setNotice('')
+    try {
+      const amount = Number(expenseForm.amount)
+      if (!Number.isFinite(amount) || amount <= 0) throw new Error('Enter an expense amount greater than zero.')
+      if (!expenseForm.expense_date) throw new Error('Select the expense date.')
+      if (!expenseForm.category.trim()) throw new Error('Select an expense category.')
+      const { error: e } = await supabase.from('expenses').insert({ organization_id: selectedOrg, expense_date: expenseForm.expense_date, category: expenseForm.category, amount, payment_mode: expenseForm.payment_mode || null, description: expenseForm.description.trim() || null })
+      if (e) throw e
+      setExpenseForm({ ...emptyExpense, expense_date: expenseForm.expense_date })
+      setExpenseFormOpen(false)
+      await loadExpenseRecords()
+      setNotice('Expense recorded successfully.')
+    } catch (e) { setError(e instanceof Error ? e.message : 'Could not save expense.') }
+    finally { setBusy(false) }
+  }
+
   async function updateOrderStatus(id: string, status: string) {
     if (!supabase || !selectedOrg) return
     setBusy(true); setError('')
@@ -367,6 +400,8 @@ export default function App() {
     { key: 'orders' as Page, icon: ClipboardList, label: tr.orders, color: 'blue' },
     { key: 'production' as Page, icon: Factory, label: 'Production', color: 'mint' },
     { key: 'dispatch' as Page, icon: Truck, label: 'Dispatch', color: 'green' },
+    { key: 'expenses' as Page, icon: Receipt, label: 'Expenses', color: 'amber' },
+
     { key: 'overview' as Page, icon: Activity, label: tr.overview, color: 'mint' }
   ]
   const filteredCustomers = customers.filter(c => [c.name, c.phone ?? '', c.email ?? '', c.gstin ?? ''].join(' ').toLowerCase().includes(customerSearch.toLowerCase()))
@@ -384,13 +419,14 @@ export default function App() {
         <button className={'nav-link ' + (page === 'orders' ? 'active' : '')} onClick={() => { setPage('orders'); setMenuOpen(false) }}><ClipboardList size={18} />{tr.orders}</button>
         <button className={'nav-link ' + (page === 'production' ? 'active' : '')} onClick={() => { setPage('production'); setMenuOpen(false) }}><Factory size={18} />Production</button>
         <button className={'nav-link ' + (page === 'dispatch' ? 'active' : '')} onClick={() => { setPage('dispatch'); setMenuOpen(false) }}><Truck size={18} />Dispatch</button>
+        <button className={'nav-link ' + (page === 'expenses' ? 'active' : '')} onClick={() => { setPage('expenses'); setMenuOpen(false) }}><Receipt size={18} />Expenses</button>
         {['Inventory', 'Employees', 'Accounts', 'Reports'].map(label => <button className="nav-link" key={label} onClick={() => setNotice(label + ' will be developed in the next stage.')}><Package size={18} />{label}</button>)}
       </nav>
       <div className="sidebar-bottom"><button className="nav-link" onClick={() => setNotice('Settings will be added in a later stage.')}><Settings size={18} />Settings</button><button className="nav-link" onClick={() => setNotice('Help and support will be added in a later stage.')}><CircleHelp size={18} />Help & support</button><div className="profile-row"><div className="avatar">{(user.email?.[0] ?? 'U').toUpperCase()}</div><div><strong>{user.user_metadata?.full_name || user.email}</strong><small>{user.email}</small></div><button className="icon-btn" aria-label={tr.signout} onClick={signOut}><LogOut size={17} /></button></div></div>
     </aside>
     {menuOpen && <button className="scrim" aria-label="Close menu" onClick={() => setMenuOpen(false)} />}
     <main className="main-area">
-      <header className="topbar"><button className="icon-btn mobile-menu" aria-label="Open menu" onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <X /> : <Menu />}</button><div className="breadcrumb">{currentOrg?.name ?? 'Workspace'} <span>/</span> {page === 'overview' ? tr.overview : page === 'customers' ? tr.customers : page === 'orders' ? tr.orders : page === 'production' ? 'Production' : 'Dispatch'}</div><div className="top-actions"><LanguageSwitch language={language} setLanguage={setLanguage} /><button className="icon-btn notification" aria-label="Notifications"><Bell size={19} /></button><div className="top-avatar">{(user.email?.[0] ?? 'U').toUpperCase()}</div></div></header>
+      <header className="topbar"><button className="icon-btn mobile-menu" aria-label="Open menu" onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <X /> : <Menu />}</button><div className="breadcrumb">{currentOrg?.name ?? 'Workspace'} <span>/</span> {page === 'overview' ? tr.overview : page === 'customers' ? tr.customers : page === 'orders' ? tr.orders : page === 'production' ? 'Production' : page === 'dispatch' ? 'Dispatch' : 'Expenses'}</div><div className="top-actions"><LanguageSwitch language={language} setLanguage={setLanguage} /><button className="icon-btn notification" aria-label="Notifications"><Bell size={19} /></button><div className="top-avatar">{(user.email?.[0] ?? 'U').toUpperCase()}</div></div></header>
       <div className="content">
         {page === 'overview' && <>
           <div className="welcome-row"><div><span className="eyebrow">LIVE WORKSPACE · {new Date().toLocaleDateString('en-IN', { dateStyle: 'full' })}</span><h1>Welcome, {user.user_metadata?.full_name || user.email?.split('@')[0]} <span>✦</span></h1><p>Here is the live overview of your factory workspace.</p></div><div className="demo-tag"><span />Connected</div></div>
@@ -427,6 +463,19 @@ export default function App() {
           </form>}
           <div className="table-toolbar"><span>{productionEntries.length} production entries</span><span>Latest 200 records</span></div>
           <div className="table-scroll"><table className="records-table production-table"><thead><tr><th>Date</th><th>Job order</th><th>Machine</th><th>Shift</th><th>Input (kg)</th><th>Output (kg)</th><th>Loss (kg)</th><th>Loss (%)</th></tr></thead><tbody>{productionEntries.map(entry => { const loss = Number(entry.input_weight_kg) - Number(entry.output_weight_kg); const pct = Number(entry.input_weight_kg) > 0 ? loss / Number(entry.input_weight_kg) * 100 : 0; const order = jobOrders.find(o => o.id === entry.job_order_id); return <tr key={entry.id}><td>{entry.production_date}</td><td><strong>{order?.order_number ?? 'Job order'}</strong></td><td>{entry.machine_name || '—'}</td><td>{entry.shift || '—'}</td><td>{Number(entry.input_weight_kg).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td><td>{Number(entry.output_weight_kg).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td><td>{loss.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td><td><strong>{pct.toFixed(2)}%</strong></td></tr> })}</tbody></table>{!productionEntries.length && <div className="empty-state"><Factory size={25} /><strong>No production entries yet</strong><span>Choose an open job order and record the input and output weights.</span></div>}</div>
+        </section>}
+        {page === 'expenses' && <section className="panel data-panel"><div className="section-heading"><div><h2>Expense management</h2><p>Track factory operating costs and payment methods</p></div><button className="primary-btn" onClick={() => { setExpenseFormOpen(!expenseFormOpen); setError(''); setNotice('') }}><Plus size={16} /> Add expense</button></div>
+          <div className="expense-summary"><div><span>This month</span><strong>₹{expenses.filter(x => x.expense_date.slice(0, 7) === today().slice(0, 7)).reduce((sum, x) => sum + Number(x.amount), 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</strong></div><div><span>Today</span><strong>₹{expenses.filter(x => x.expense_date === today()).reduce((sum, x) => sum + Number(x.amount), 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</strong></div><div><span>Records</span><strong>{expenses.length}</strong></div></div>
+          {expenseFormOpen && <form className="record-form" onSubmit={addExpense}>
+            <label>Expense date *<input type="date" value={expenseForm.expense_date} onChange={e => setExpenseForm({ ...expenseForm, expense_date: e.target.value })} required /></label>
+            <label>Category *<select value={expenseForm.category} onChange={e => setExpenseForm({ ...expenseForm, category: e.target.value })} required>{expenseCategories.map(x => <option key={x}>{x}</option>)}</select></label>
+            <label>Amount (₹) *<input type="number" min="0.01" step="0.01" value={expenseForm.amount} onChange={e => setExpenseForm({ ...expenseForm, amount: e.target.value })} placeholder="e.g. 2500" required /></label>
+            <label>Payment mode<select value={expenseForm.payment_mode} onChange={e => setExpenseForm({ ...expenseForm, payment_mode: e.target.value })}>{paymentModes.map(x => <option key={x}>{x}</option>)}</select></label>
+            <label className="wide-field">Description / notes<textarea rows={2} value={expenseForm.description} onChange={e => setExpenseForm({ ...expenseForm, description: e.target.value })} placeholder="e.g. Firewood for boiler" /></label>
+            <div className="form-actions"><button className="primary-btn" type="submit" disabled={busy}>{busy ? 'Saving…' : 'Save expense'}</button><button className="secondary-btn" type="button" onClick={() => setExpenseFormOpen(false)}>Cancel</button></div>
+          </form>}
+          <div className="table-toolbar"><span>{expenses.length} expense records</span><span>Latest 500 records · Amounts in INR</span></div>
+          <div className="table-scroll"><table className="records-table"><thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Payment mode</th><th>Amount (₹)</th></tr></thead><tbody>{expenses.map(x => <tr key={x.id}><td>{x.expense_date}</td><td><strong>{x.category}</strong></td><td>{x.description || '—'}</td><td>{x.payment_mode || '—'}</td><td><strong>{Number(x.amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td></tr>)}</tbody></table>{!expenses.length && <div className="empty-state"><Receipt size={25} /><strong>No expenses recorded yet</strong><span>Add your first factory expense to start tracking operating costs.</span></div>}</div>
         </section>}
         {page === 'dispatch' && <section className="panel data-panel"><div className="section-heading"><div><h2>Dispatch management</h2><p>Record finished fabric sent to customers, linked to each job order</p></div><button className="primary-btn" onClick={() => { setDispatchFormOpen(!dispatchFormOpen); setError(''); setNotice('') }}><Plus size={16} /> Record dispatch</button></div>
           {dispatchFormOpen && <form className="record-form" onSubmit={addDispatch}>
