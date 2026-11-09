@@ -113,6 +113,12 @@ create index if not exists idx_job_orders_org_status on public.job_orders(organi
 create index if not exists idx_production_org_date on public.production_entries(organization_id, production_date);
 create index if not exists idx_dispatches_org_date on public.dispatches(organization_id, dispatch_date);
 create index if not exists idx_expenses_org_date on public.expenses(organization_id, expense_date);
+create index if not exists idx_organizations_created_by on public.organizations(created_by);
+create index if not exists idx_job_orders_customer on public.job_orders(customer_id);
+create index if not exists idx_job_orders_factory on public.job_orders(factory_id);
+create index if not exists idx_production_factory on public.production_entries(factory_id);
+create index if not exists idx_production_job_order on public.production_entries(job_order_id);
+create index if not exists idx_dispatches_job_order on public.dispatches(job_order_id);
 
 -- SECURITY DEFINER is required only for these tightly scoped helpers:
 -- membership lookup avoids recursive RLS; trigger creates initial owner row.
