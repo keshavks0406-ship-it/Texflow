@@ -207,6 +207,24 @@ export type Database = {
           },
         ]
       }
+      inventory_items: {
+        Row: { id: string; organization_id: string; factory_id: string; item_name: string; category: string; unit: string; reorder_level: number; created_at: string }
+        Insert: { id?: string; organization_id: string; factory_id: string; item_name: string; category?: string; unit?: string; reorder_level?: number; created_at?: string }
+        Update: { id?: string; organization_id?: string; factory_id?: string; item_name?: string; category?: string; unit?: string; reorder_level?: number; created_at?: string }
+        Relationships: [
+          { foreignKeyName: "inventory_items_factory_id_fkey"; columns: ["factory_id"]; isOneToOne: false; referencedRelation: "factories"; referencedColumns: ["id"]; },
+          { foreignKeyName: "inventory_items_organization_id_fkey"; columns: ["organization_id"]; isOneToOne: false; referencedRelation: "organizations"; referencedColumns: ["id"]; }
+        ]
+      }
+      inventory_transactions: {
+        Row: { id: string; organization_id: string; factory_id: string; item_id: string; transaction_type: string; quantity: number; transaction_date: string; reference_purchase_id: string | null; notes: string | null; created_at: string }
+        Insert: { id?: string; organization_id: string; factory_id: string; item_id: string; transaction_type: string; quantity: number; transaction_date?: string; reference_purchase_id?: string | null; notes?: string | null; created_at?: string }
+        Update: { id?: string; organization_id?: string; factory_id?: string; item_id?: string; transaction_type?: string; quantity?: number; transaction_date?: string; reference_purchase_id?: string | null; notes?: string | null; created_at?: string }
+        Relationships: [
+          { foreignKeyName: "inventory_transactions_item_id_fkey"; columns: ["item_id"]; isOneToOne: false; referencedRelation: "inventory_items"; referencedColumns: ["id"]; },
+          { foreignKeyName: "inventory_transactions_reference_purchase_id_fkey"; columns: ["reference_purchase_id"]; isOneToOne: true; referencedRelation: "purchases"; referencedColumns: ["id"]; }
+        ]
+      },
       job_orders: {
         Row: {
           created_at: string
