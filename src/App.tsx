@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { Activity, ArrowUpRight, Bell, Boxes, Building2, CalendarDays, CheckCircle2, ChevronDown, CircleHelp, Factory, Languages, LogOut, Menu, Package, Plus, Search, Settings, ShieldCheck, Users, Wallet, X, Eye, EyeOff, ClipboardList, UserRound } from 'lucide-react'
+import { Activity, ArrowUpRight, Bell, Boxes, Building2, CalendarDays, ChevronDown, CircleHelp, Factory, Languages, LogOut, Menu, Package, Plus, Search, Settings, ShieldCheck, Users, Wallet, X, Eye, EyeOff, ClipboardList, UserRound } from 'lucide-react'
 import type { User } from '@supabase/supabase-js'
 import type { Tables } from './types/database'
 import { isSupabaseConfigured, supabase } from './lib/supabase'
@@ -78,7 +78,8 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    if (!supabase || !user) {
+    const client = supabase
+    if (!client || !user) {
       setOrganizations([]); setSelectedOrg(''); setFactories([]); setSelectedFactory('')
       setWorkspaceReady(true); return
     }
@@ -86,9 +87,9 @@ export default function App() {
     setWorkspaceReady(false)
     const load = async () => {
       const full = typeof user.user_metadata?.full_name === 'string' ? user.user_metadata.full_name : ''
-      const { error: pe } = await supabase.from('profiles').upsert({ id: user.id, full_name: full || null })
+      const { error: pe } = await client.from('profiles').upsert({ id: user.id, full_name: full || null })
       if (pe) throw pe
-      const { data, error: oe } = await supabase.from('organizations').select('*').order('created_at')
+      const { data, error: oe } = await client.from('organizations').select('*').order('created_at')
       if (oe) throw oe
       if (!alive) return
       setOrganizations(data ?? [])
@@ -131,16 +132,17 @@ export default function App() {
   }, [user, selectedOrg])
 
   useEffect(() => {
-    if (!supabase || !user || !selectedOrg || !selectedFactory) { setMetricsReady(false); return }
+    const client = supabase
+    if (!client || !user || !selectedOrg || !selectedFactory) { setMetricsReady(false); return }
     let alive = true
     setMetricsReady(false)
     const load = async () => {
       const day = today()
       const [o, p, d, e] = await Promise.all([
-        supabase.from('job_orders').select('id', { count: 'exact', head: true }).eq('organization_id', selectedOrg).eq('factory_id', selectedFactory).in('status', ['received', 'in_production']),
-        supabase.from('production_entries').select('output_weight_kg').eq('organization_id', selectedOrg).eq('factory_id', selectedFactory).eq('production_date', day),
+        client.from('job_orders').select('id', { count: 'exact', head: true }).eq('organization_id', selectedOrg).eq('factory_id', selectedFactory).in('status', ['received', 'in_production']),
+        client.from('production_entries').select('output_weight_kg').eq('organization_id', selectedOrg).eq('factory_id', selectedFactory).eq('production_date', day),
         supabase.from('job_orders').select('id', { count: 'exact', head: true }).eq('organization_id', selectedOrg).eq('factory_id', selectedFactory).eq('status', 'completed'),
-        supabase.from('expenses').select('amount').eq('organization_id', selectedOrg).eq('expense_date', day)
+        client.from('expenses').select('amount').eq('organization_id', selectedOrg).eq('expense_date', day)
       ])
       const failure = [o.error, p.error, d.error, e.error].find(Boolean)
       if (failure) throw failure
