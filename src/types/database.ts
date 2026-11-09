@@ -147,31 +147,6 @@ export type Database = {
           },
         ]
       }
-      purchases: {
-        Row: {
-          id: string; organization_id: string; factory_id: string; purchase_date: string;
-          supplier_name: string; supplier_phone: string | null; invoice_number: string | null;
-          category: string; item_name: string; quantity: number; unit: string; unit_price: number;
-          gst_percent: number; subtotal: number; gst_amount: number; total_amount: number;
-          payment_mode: string | null; notes: string | null; created_at: string;
-        }
-        Insert: {
-          id?: string; organization_id: string; factory_id: string; purchase_date?: string;
-          supplier_name: string; supplier_phone?: string | null; invoice_number?: string | null;
-          category: string; item_name: string; quantity: number; unit?: string; unit_price: number;
-          gst_percent?: number; payment_mode?: string | null; notes?: string | null; created_at?: string;
-        }
-        Update: {
-          id?: string; organization_id?: string; factory_id?: string; purchase_date?: string;
-          supplier_name?: string; supplier_phone?: string | null; invoice_number?: string | null;
-          category?: string; item_name?: string; quantity?: number; unit?: string; unit_price?: number;
-          gst_percent?: number; payment_mode?: string | null; notes?: string | null; created_at?: string;
-        }
-        Relationships: [
-          { foreignKeyName: "purchases_factory_id_fkey"; columns: ["factory_id"]; isOneToOne: false; referencedRelation: "factories"; referencedColumns: ["id"]; },
-          { foreignKeyName: "purchases_organization_id_fkey"; columns: ["organization_id"]; isOneToOne: false; referencedRelation: "organizations"; referencedColumns: ["id"]; }
-        ]
-      },
       factories: {
         Row: {
           address: string | null
@@ -208,23 +183,114 @@ export type Database = {
         ]
       }
       inventory_items: {
-        Row: { id: string; organization_id: string; factory_id: string; item_name: string; category: string; unit: string; reorder_level: number; created_at: string }
-        Insert: { id?: string; organization_id: string; factory_id: string; item_name: string; category?: string; unit?: string; reorder_level?: number; created_at?: string }
-        Update: { id?: string; organization_id?: string; factory_id?: string; item_name?: string; category?: string; unit?: string; reorder_level?: number; created_at?: string }
+        Row: {
+          category: string
+          created_at: string
+          factory_id: string
+          id: string
+          item_name: string
+          organization_id: string
+          reorder_level: number
+          unit: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          factory_id: string
+          id?: string
+          item_name: string
+          organization_id: string
+          reorder_level?: number
+          unit?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          factory_id?: string
+          id?: string
+          item_name?: string
+          organization_id?: string
+          reorder_level?: number
+          unit?: string
+        }
         Relationships: [
-          { foreignKeyName: "inventory_items_factory_id_fkey"; columns: ["factory_id"]; isOneToOne: false; referencedRelation: "factories"; referencedColumns: ["id"]; },
-          { foreignKeyName: "inventory_items_organization_id_fkey"; columns: ["organization_id"]; isOneToOne: false; referencedRelation: "organizations"; referencedColumns: ["id"]; }
+          {
+            foreignKeyName: "inventory_items_factory_id_fkey"
+            columns: ["factory_id"]
+            isOneToOne: false
+            referencedRelation: "factories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_items_factory_org_fk"
+            columns: ["factory_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "factories"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "inventory_items_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
         ]
       }
       inventory_transactions: {
-        Row: { id: string; organization_id: string; factory_id: string; item_id: string; transaction_type: string; quantity: number; transaction_date: string; reference_purchase_id: string | null; notes: string | null; created_at: string }
-        Insert: { id?: string; organization_id: string; factory_id: string; item_id: string; transaction_type: string; quantity: number; transaction_date?: string; reference_purchase_id?: string | null; notes?: string | null; created_at?: string }
-        Update: { id?: string; organization_id?: string; factory_id?: string; item_id?: string; transaction_type?: string; quantity?: number; transaction_date?: string; reference_purchase_id?: string | null; notes?: string | null; created_at?: string }
+        Row: {
+          created_at: string
+          factory_id: string
+          id: string
+          item_id: string
+          notes: string | null
+          organization_id: string
+          quantity: number
+          reference_purchase_id: string | null
+          transaction_date: string
+          transaction_type: string
+        }
+        Insert: {
+          created_at?: string
+          factory_id: string
+          id?: string
+          item_id: string
+          notes?: string | null
+          organization_id: string
+          quantity: number
+          reference_purchase_id?: string | null
+          transaction_date?: string
+          transaction_type: string
+        }
+        Update: {
+          created_at?: string
+          factory_id?: string
+          id?: string
+          item_id?: string
+          notes?: string | null
+          organization_id?: string
+          quantity?: number
+          reference_purchase_id?: string | null
+          transaction_date?: string
+          transaction_type?: string
+        }
         Relationships: [
-          { foreignKeyName: "inventory_transactions_item_id_fkey"; columns: ["item_id"]; isOneToOne: false; referencedRelation: "inventory_items"; referencedColumns: ["id"]; },
-          { foreignKeyName: "inventory_transactions_reference_purchase_id_fkey"; columns: ["reference_purchase_id"]; isOneToOne: true; referencedRelation: "purchases"; referencedColumns: ["id"]; }
+          {
+            foreignKeyName: "inventory_transactions_item_scope_fk"
+            columns: ["item_id", "organization_id", "factory_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id", "organization_id", "factory_id"]
+          },
+          {
+            foreignKeyName: "inventory_transactions_reference_purchase_id_fkey"
+            columns: ["reference_purchase_id"]
+            isOneToOne: true
+            referencedRelation: "purchases"
+            referencedColumns: ["id"]
+          },
         ]
-      },
+      }
       job_orders: {
         Row: {
           created_at: string
@@ -429,6 +495,87 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      purchases: {
+        Row: {
+          category: string
+          created_at: string
+          factory_id: string
+          gst_amount: number | null
+          gst_percent: number
+          id: string
+          invoice_number: string | null
+          item_name: string
+          notes: string | null
+          organization_id: string
+          payment_mode: string | null
+          purchase_date: string
+          quantity: number
+          subtotal: number | null
+          supplier_name: string
+          supplier_phone: string | null
+          total_amount: number | null
+          unit: string
+          unit_price: number
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          factory_id: string
+          gst_amount?: number | null
+          gst_percent?: number
+          id?: string
+          invoice_number?: string | null
+          item_name: string
+          notes?: string | null
+          organization_id: string
+          payment_mode?: string | null
+          purchase_date?: string
+          quantity: number
+          subtotal?: number | null
+          supplier_name: string
+          supplier_phone?: string | null
+          total_amount?: number | null
+          unit?: string
+          unit_price: number
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          factory_id?: string
+          gst_amount?: number | null
+          gst_percent?: number
+          id?: string
+          invoice_number?: string | null
+          item_name?: string
+          notes?: string | null
+          organization_id?: string
+          payment_mode?: string | null
+          purchase_date?: string
+          quantity?: number
+          subtotal?: number | null
+          supplier_name?: string
+          supplier_phone?: string | null
+          total_amount?: number | null
+          unit?: string
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchases_factory_id_fkey"
+            columns: ["factory_id"]
+            isOneToOne: false
+            referencedRelation: "factories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchases_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
