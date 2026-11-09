@@ -177,3 +177,12 @@ footer{display:flex;justify-content:space-between;padding:25px 2px 0;color:#9aac
 .empty-state strong{font-size:12px;color:#5d7770}
 .empty-state span{font-size:10px}
 @media(max-width:700px){.data-panel{padding:15px}.data-panel .section-heading{align-items:flex-start;flex-direction:column}.data-panel .section-heading .primary-btn{width:100%}.record-form{grid-template-columns:1fr;padding:13px}.wide-field{grid-column:auto}.form-actions{grid-column:auto}.records-table{min-width:690px}}
+
+
+/* Production entry preview */
+.production-preview { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding: 15px; border: 1px solid var(--border, #e5e7eb); border-radius: 12px; background: var(--surface-soft, #f8fafc); }
+.production-preview > div { display: flex; flex-direction: column; gap: 5px; }
+.production-preview span { color: var(--muted, #64748b); font-size: 12px; }
+.production-preview strong { font-size: 20px; font-weight: 700; }
+.production-table { min-width: 900px; }
+@media (max-width: 600px) { .production-preview { grid-template-columns: 1fr 1fr; } .production-preview strong { font-size: 17px; } }
