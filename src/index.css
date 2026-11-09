@@ -190,3 +190,11 @@ footer{display:flex;justify-content:space-between;padding:25px 2px 0;color:#9aac
 
 /* Dispatch management */
 .dispatch-summary{display:flex;gap:12px;flex-wrap:wrap}
+
+
+/* Expense management */
+.expense-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:18px 0 8px}
+.expense-summary>div{display:flex;flex-direction:column;gap:7px;padding:15px;border:1px solid #e7eee9;border-radius:10px;background:#f8fbf9;min-width:0}
+.expense-summary span{font-size:10px;color:#82938f}
+.expense-summary strong{font-size:20px;color:#29474a;overflow-wrap:anywhere}
+@media(max-width:600px){.expense-summary{grid-template-columns:1fr 1fr}.expense-summary>div:last-child{grid-column:1/-1}.expense-summary strong{font-size:17px}}
