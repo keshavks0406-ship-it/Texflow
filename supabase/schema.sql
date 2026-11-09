@@ -113,6 +113,12 @@ create index if not exists idx_job_orders_org_status on public.job_orders(organi
 create index if not exists idx_production_org_date on public.production_entries(organization_id, production_date);
 create index if not exists idx_dispatches_org_date on public.dispatches(organization_id, dispatch_date);
 create index if not exists idx_expenses_org_date on public.expenses(organization_id, expense_date);
+create index if not exists idx_organizations_created_by on public.organizations(created_by);
+create index if not exists idx_job_orders_customer on public.job_orders(customer_id);
+create index if not exists idx_job_orders_factory on public.job_orders(factory_id);
+create index if not exists idx_production_factory on public.production_entries(factory_id);
+create index if not exists idx_production_job_order on public.production_entries(job_order_id);
+create index if not exists idx_dispatches_job_order on public.dispatches(job_order_id);
 
 -- SECURITY DEFINER is required only for these tightly scoped helpers:
 -- membership lookup avoids recursive RLS; trigger creates initial owner row.
@@ -241,6 +247,9 @@ for all to authenticated using (private.is_org_member(organization_id))
 with check (private.is_org_member(organization_id));
 
 grant usage on schema public to authenticated;
+revoke all on public.organizations, public.profiles, public.organization_members, public.factories,
+  public.customers, public.job_orders, public.production_entries, public.dispatches, public.expenses
+from anon;
 grant select, insert, update, delete on public.organizations, public.profiles, public.factories,
   public.customers, public.job_orders, public.production_entries, public.dispatches, public.expenses
 to authenticated;
