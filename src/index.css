@@ -186,3 +186,7 @@ footer{display:flex;justify-content:space-between;padding:25px 2px 0;color:#9aac
 .production-preview strong { font-size: 20px; font-weight: 700; }
 .production-table { min-width: 900px; }
 @media (max-width: 600px) { .production-preview { grid-template-columns: 1fr 1fr; } .production-preview strong { font-size: 17px; } }
+
+
+/* Dispatch management */
+.dispatch-summary{display:flex;gap:12px;flex-wrap:wrap}
