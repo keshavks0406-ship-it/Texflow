@@ -141,7 +141,7 @@ export default function App() {
       const [o, p, d, e] = await Promise.all([
         client.from('job_orders').select('id', { count: 'exact', head: true }).eq('organization_id', selectedOrg).eq('factory_id', selectedFactory).in('status', ['received', 'in_production']),
         client.from('production_entries').select('output_weight_kg').eq('organization_id', selectedOrg).eq('factory_id', selectedFactory).eq('production_date', day),
-        supabase.from('job_orders').select('id', { count: 'exact', head: true }).eq('organization_id', selectedOrg).eq('factory_id', selectedFactory).eq('status', 'completed'),
+        client.from('job_orders').select('id', { count: 'exact', head: true }).eq('organization_id', selectedOrg).eq('factory_id', selectedFactory).eq('status', 'completed'),
         client.from('expenses').select('amount').eq('organization_id', selectedOrg).eq('expense_date', day)
       ])
       const failure = [o.error, p.error, d.error, e.error].find(Boolean)
