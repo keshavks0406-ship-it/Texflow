@@ -280,3 +280,25 @@ footer{display:flex;justify-content:space-between;padding:25px 2px 0;color:#9aac
 .quality-management .report-footnote { display:flex; align-items:center; gap:7px; }
 @media(max-width:900px){.quality-summary{grid-template-columns:repeat(2,minmax(0,1fr));}}
 @media(max-width:560px){.quality-summary{grid-template-columns:1fr 1fr;gap:8px}.quality-summary>div{padding:12px}.quality-summary strong{font-size:17px}.quality-management .section-heading{align-items:flex-start;flex-direction:column}.quality-management .section-heading button{width:100%;justify-content:center}}
+
+
+/* Machine maintenance and breakdown management */
+.maintenance-management{display:flex;flex-direction:column;gap:18px}
+.maintenance-actions{display:flex;gap:8px;flex-wrap:wrap}
+.maintenance-summary{grid-template-columns:repeat(5,minmax(0,1fr))}
+.maintenance-form h3{grid-column:1/-1;margin:0 0 4px;font-size:15px}
+.maintenance-subsection{display:flex;flex-direction:column;gap:10px}
+.subsection-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.subsection-heading h3{display:flex;align-items:center;gap:8px;margin:0;font-size:15px}
+.subsection-heading>span{color:var(--muted,#64748b);font-size:12px}
+.subsection-heading label{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted,#64748b)}
+.maintenance-table{min-width:1050px}
+.maintenance-table select{min-width:130px;padding:7px 9px;border:1px solid var(--border,#dbe1e8);border-radius:8px;background:var(--surface,#fff);color:inherit;font:inherit}
+.maintenance-status{display:inline-flex;padding:5px 9px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap;background:#edf1f5;color:#536477}
+.maintenance-operational,.maintenance-completed{background:#e6f5ec;color:#216b43}
+.maintenance-breakdown{background:#fff0ed;color:#a33b2e}
+.maintenance-under-maintenance,.maintenance-in-progress{background:#fff5df;color:#916015}
+.maintenance-inactive{background:#edf1f5;color:#536477}
+@media(max-width:1000px){.maintenance-summary{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:700px){.maintenance-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.maintenance-actions{width:100%}.maintenance-actions button{flex:1;justify-content:center}.subsection-heading{align-items:flex-start;flex-direction:column}}
+@media(max-width:560px){.maintenance-summary{gap:8px}.maintenance-summary>div{padding:12px}.maintenance-summary strong{font-size:16px}.maintenance-management .section-heading{align-items:flex-start;flex-direction:column}.maintenance-actions{flex-direction:column}.maintenance-actions button{width:100%}}
