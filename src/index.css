@@ -208,3 +208,8 @@ footer{display:flex;justify-content:space-between;padding:25px 2px 0;color:#9aac
 /* Inventory stock register */
 .inventory-actions{display:flex;gap:8px;flex-wrap:wrap}.stock-status{display:inline-flex;padding:5px 9px;border-radius:20px;font-size:10px;font-weight:700}.stock-status.low{background:#fff2e6;color:#a65b19}.stock-status.normal{background:#eaf6ef;color:#27734c}
 @media(max-width:600px){.inventory-actions{width:100%}.inventory-actions button{flex:1}}
+
+/* Boiler and fuel register */
+.boiler-table{min-width:920px}
+.table-toolbar label{display:flex;align-items:center;gap:8px;color:#607872;font-size:11px}
+.table-toolbar input[type=month]{border:1px solid #dfe9e4;border-radius:7px;padding:7px 9px;color:#29464a;background:#fff;font:inherit}
