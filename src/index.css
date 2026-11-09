@@ -198,3 +198,8 @@ footer{display:flex;justify-content:space-between;padding:25px 2px 0;color:#9aac
 .expense-summary span{font-size:10px;color:#82938f}
 .expense-summary strong{font-size:20px;color:#29474a;overflow-wrap:anywhere}
 @media(max-width:600px){.expense-summary{grid-template-columns:1fr 1fr}.expense-summary>div:last-child{grid-column:1/-1}.expense-summary strong{font-size:17px}}
+
+
+/* Purchase register */
+.purchase-preview{display:flex;align-items:center;gap:18px;flex-wrap:wrap;grid-column:1/-1;padding:13px 15px;border:1px solid #e5eee9;border-radius:9px;background:#f4f9f6;color:#637a72;font-size:11px}.purchase-preview strong{color:#254b43;font-size:14px;margin-left:auto}
+@media(max-width:600px){.purchase-preview{gap:9px;flex-direction:column;align-items:flex-start}.purchase-preview strong{margin-left:0}}
