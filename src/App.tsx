@@ -1,20 +1,22 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { Activity, ArrowUpRight, Bell, Boxes, Building2, CalendarDays, ChevronDown, CircleHelp, Factory, Languages, LogOut, Menu, Package, Plus, Search, Settings, ShieldCheck, Users, Wallet, X, Eye, EyeOff, ClipboardList, UserRound } from 'lucide-react'
+import { Activity, ArrowUpRight, Bell, Boxes, Building2, CalendarDays, ChevronDown, CircleHelp, Factory, Languages, LogOut, Menu, Package, Plus, Search, Settings, ShieldCheck, Users, Wallet, X, Eye, EyeOff, ClipboardList, UserRound, Truck } from 'lucide-react'
 import type { User } from '@supabase/supabase-js'
 import type { Tables } from './types/database'
 import { isSupabaseConfigured, supabase } from './lib/supabase'
 
 type Language = 'en' | 'ta'
-type Page = 'overview' | 'customers' | 'orders' | 'production'
+type Page = 'overview' | 'customers' | 'orders' | 'production' | 'dispatch'
 type Organization = Tables<'organizations'>
 type FactoryRow = Tables<'factories'>
 type Customer = Tables<'customers'>
 type JobOrder = Tables<'job_orders'>
 type ProductionEntry = Tables<'production_entries'>
+type DispatchRow = Tables<'dispatches'>
 const today = () => new Date().toLocaleDateString('en-CA')
 const emptyCustomer = { name: '', phone: '', email: '', gstin: '', address: '' }
 const emptyOrder = { order_number: '', customer_id: '', fabric_type: 'Knitted fabric', received_weight_kg: '', expected_delivery_date: '', notes: '' }
 const emptyProduction = { job_order_id: '', input_weight_kg: '', output_weight_kg: '', production_date: today(), shift: 'Day', machine_name: 'Syntex A3', notes: '' }
+const emptyDispatch = { job_order_id: '', dispatch_date: today(), weight_kg: '', vehicle_number: '', delivery_note_number: '', notes: '' }
 
 export default function App() {
   const [language, setLanguage] = useState<Language>('en')
@@ -45,6 +47,9 @@ export default function App() {
   const [customers, setCustomers] = useState<Customer[]>([])
   const [jobOrders, setJobOrders] = useState<JobOrder[]>([])
   const [productionEntries, setProductionEntries] = useState<ProductionEntry[]>([])
+  const [dispatches, setDispatches] = useState<DispatchRow[]>([])
+  const [dispatchFormOpen, setDispatchFormOpen] = useState(false)
+  const [dispatchForm, setDispatchForm] = useState(emptyDispatch)
   const [productionFormOpen, setProductionFormOpen] = useState(false)
   const [productionForm, setProductionForm] = useState(emptyProduction)
   const [customerFormOpen, setCustomerFormOpen] = useState(false)
@@ -125,6 +130,13 @@ export default function App() {
     setProductionEntries(data ?? [])
   }
 
+  async function loadDispatchRecords() {
+    if (!supabase || !selectedOrg) { setDispatches([]); return }
+    const { data, error: e } = await supabase.from('dispatches').select('*').eq('organization_id', selectedOrg).order('dispatch_date', { ascending: false }).order('created_at', { ascending: false }).limit(200)
+    if (e) throw e
+    setDispatches(data ?? [])
+  }
+
   async function loadBusinessRecords() {
     if (!supabase || !selectedOrg) return
     const [c, j] = await Promise.all([
@@ -140,7 +152,7 @@ export default function App() {
   useEffect(() => {
     if (!user || !selectedOrg) return
     let alive = true
-    loadBusinessRecords().catch(e => { if (alive) setError(e instanceof Error ? e.message : 'Could not load records.') })
+    Promise.all([loadBusinessRecords(), loadDispatchRecords()]).catch(e => { if (alive) setError(e instanceof Error ? e.message : 'Could not load records.') })
     return () => { alive = false }
   }, [user, selectedOrg])
 
@@ -293,6 +305,41 @@ export default function App() {
     finally { setBusy(false) }
   }
 
+  async function addDispatch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const client = supabase
+    if (!client || !selectedOrg) return
+    setBusy(true); setError(''); setNotice('')
+    try {
+      const order = jobOrders.find(row => row.id === dispatchForm.job_order_id)
+      if (!order) throw new Error('Select a valid job order.')
+      if (order.status === 'cancelled' || order.status === 'dispatched') throw new Error('This job order is not available for dispatch.')
+      const weight = Number(dispatchForm.weight_kg)
+      if (!Number.isFinite(weight) || weight <= 0) throw new Error('Enter a dispatch weight greater than zero.')
+      const { data: producedRows, error: productionError } = await client.from('production_entries').select('output_weight_kg').eq('organization_id', selectedOrg).eq('job_order_id', order.id)
+      if (productionError) throw productionError
+      const produced = (producedRows ?? []).reduce((sum, row) => sum + Number(row.output_weight_kg), 0)
+      const { data: priorRows, error: dispatchError } = await client.from('dispatches').select('weight_kg').eq('organization_id', selectedOrg).eq('job_order_id', order.id)
+      if (dispatchError) throw dispatchError
+      const alreadyDispatched = (priorRows ?? []).reduce((sum, row) => sum + Number(row.weight_kg), 0)
+      const available = Math.max(0, produced - alreadyDispatched)
+      if (weight > available + 0.001) throw new Error('Dispatch exceeds available finished fabric. Available: ' + available.toLocaleString('en-IN', { maximumFractionDigits: 2 }) + ' kg.')
+      const { error: insertError } = await client.from('dispatches').insert({ organization_id: selectedOrg, job_order_id: order.id, dispatch_date: dispatchForm.dispatch_date, weight_kg: weight, vehicle_number: dispatchForm.vehicle_number.trim() || null, delivery_note_number: dispatchForm.delivery_note_number.trim() || null, notes: dispatchForm.notes.trim() || null })
+      if (insertError) throw insertError
+      const totalDispatched = alreadyDispatched + weight
+      let statusWarning = ''
+      if (produced > 0 && totalDispatched >= produced - 0.001) {
+        const { error: statusError } = await client.from('job_orders').update({ status: 'dispatched' }).eq('id', order.id).eq('organization_id', selectedOrg)
+        if (statusError) statusWarning = ' Dispatch saved, but order status could not be updated: ' + statusError.message
+      }
+      setDispatchForm({ ...emptyDispatch, dispatch_date: dispatchForm.dispatch_date })
+      setDispatchFormOpen(false)
+      await Promise.all([loadDispatchRecords(), loadBusinessRecords()])
+      setNotice('Dispatch recorded successfully.' + statusWarning)
+    } catch (e) { setError(e instanceof Error ? e.message : 'Could not save dispatch.') }
+    finally { setBusy(false) }
+  }
+
   async function updateOrderStatus(id: string, status: string) {
     if (!supabase || !selectedOrg) return
     setBusy(true); setError('')
@@ -319,6 +366,7 @@ export default function App() {
     { key: 'customers' as Page, icon: Users, label: tr.customers, color: 'amber' },
     { key: 'orders' as Page, icon: ClipboardList, label: tr.orders, color: 'blue' },
     { key: 'production' as Page, icon: Factory, label: 'Production', color: 'mint' },
+    { key: 'dispatch' as Page, icon: Truck, label: 'Dispatch', color: 'green' },
     { key: 'overview' as Page, icon: Activity, label: tr.overview, color: 'mint' }
   ]
   const filteredCustomers = customers.filter(c => [c.name, c.phone ?? '', c.email ?? '', c.gstin ?? ''].join(' ').toLowerCase().includes(customerSearch.toLowerCase()))
@@ -335,13 +383,14 @@ export default function App() {
         <button className={'nav-link ' + (page === 'customers' ? 'active' : '')} onClick={() => { setPage('customers'); setMenuOpen(false) }}><Users size={18} />{tr.customers}</button>
         <button className={'nav-link ' + (page === 'orders' ? 'active' : '')} onClick={() => { setPage('orders'); setMenuOpen(false) }}><ClipboardList size={18} />{tr.orders}</button>
         <button className={'nav-link ' + (page === 'production' ? 'active' : '')} onClick={() => { setPage('production'); setMenuOpen(false) }}><Factory size={18} />Production</button>
-        {['Production', 'Inventory', 'Employees', 'Accounts', 'Reports'].map(label => <button className="nav-link" key={label} onClick={() => setNotice(label + ' will be developed in the next stage.')}><Package size={18} />{label}</button>)}
+        <button className={'nav-link ' + (page === 'dispatch' ? 'active' : '')} onClick={() => { setPage('dispatch'); setMenuOpen(false) }}><Truck size={18} />Dispatch</button>
+        {['Inventory', 'Employees', 'Accounts', 'Reports'].map(label => <button className="nav-link" key={label} onClick={() => setNotice(label + ' will be developed in the next stage.')}><Package size={18} />{label}</button>)}
       </nav>
       <div className="sidebar-bottom"><button className="nav-link" onClick={() => setNotice('Settings will be added in a later stage.')}><Settings size={18} />Settings</button><button className="nav-link" onClick={() => setNotice('Help and support will be added in a later stage.')}><CircleHelp size={18} />Help & support</button><div className="profile-row"><div className="avatar">{(user.email?.[0] ?? 'U').toUpperCase()}</div><div><strong>{user.user_metadata?.full_name || user.email}</strong><small>{user.email}</small></div><button className="icon-btn" aria-label={tr.signout} onClick={signOut}><LogOut size={17} /></button></div></div>
     </aside>
     {menuOpen && <button className="scrim" aria-label="Close menu" onClick={() => setMenuOpen(false)} />}
     <main className="main-area">
-      <header className="topbar"><button className="icon-btn mobile-menu" aria-label="Open menu" onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <X /> : <Menu />}</button><div className="breadcrumb">{currentOrg?.name ?? 'Workspace'} <span>/</span> {page === 'overview' ? tr.overview : page === 'customers' ? tr.customers : page === 'orders' ? tr.orders : 'Production'}</div><div className="top-actions"><LanguageSwitch language={language} setLanguage={setLanguage} /><button className="icon-btn notification" aria-label="Notifications"><Bell size={19} /></button><div className="top-avatar">{(user.email?.[0] ?? 'U').toUpperCase()}</div></div></header>
+      <header className="topbar"><button className="icon-btn mobile-menu" aria-label="Open menu" onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <X /> : <Menu />}</button><div className="breadcrumb">{currentOrg?.name ?? 'Workspace'} <span>/</span> {page === 'overview' ? tr.overview : page === 'customers' ? tr.customers : page === 'orders' ? tr.orders : page === 'production' ? 'Production' : 'Dispatch'}</div><div className="top-actions"><LanguageSwitch language={language} setLanguage={setLanguage} /><button className="icon-btn notification" aria-label="Notifications"><Bell size={19} /></button><div className="top-avatar">{(user.email?.[0] ?? 'U').toUpperCase()}</div></div></header>
       <div className="content">
         {page === 'overview' && <>
           <div className="welcome-row"><div><span className="eyebrow">LIVE WORKSPACE · {new Date().toLocaleDateString('en-IN', { dateStyle: 'full' })}</span><h1>Welcome, {user.user_metadata?.full_name || user.email?.split('@')[0]} <span>✦</span></h1><p>Here is the live overview of your factory workspace.</p></div><div className="demo-tag"><span />Connected</div></div>
@@ -378,6 +427,19 @@ export default function App() {
           </form>}
           <div className="table-toolbar"><span>{productionEntries.length} production entries</span><span>Latest 200 records</span></div>
           <div className="table-scroll"><table className="records-table production-table"><thead><tr><th>Date</th><th>Job order</th><th>Machine</th><th>Shift</th><th>Input (kg)</th><th>Output (kg)</th><th>Loss (kg)</th><th>Loss (%)</th></tr></thead><tbody>{productionEntries.map(entry => { const loss = Number(entry.input_weight_kg) - Number(entry.output_weight_kg); const pct = Number(entry.input_weight_kg) > 0 ? loss / Number(entry.input_weight_kg) * 100 : 0; const order = jobOrders.find(o => o.id === entry.job_order_id); return <tr key={entry.id}><td>{entry.production_date}</td><td><strong>{order?.order_number ?? 'Job order'}</strong></td><td>{entry.machine_name || '—'}</td><td>{entry.shift || '—'}</td><td>{Number(entry.input_weight_kg).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td><td>{Number(entry.output_weight_kg).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td><td>{loss.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td><td><strong>{pct.toFixed(2)}%</strong></td></tr> })}</tbody></table>{!productionEntries.length && <div className="empty-state"><Factory size={25} /><strong>No production entries yet</strong><span>Choose an open job order and record the input and output weights.</span></div>}</div>
+        </section>}
+        {page === 'dispatch' && <section className="panel data-panel"><div className="section-heading"><div><h2>Dispatch management</h2><p>Record finished fabric sent to customers, linked to each job order</p></div><button className="primary-btn" onClick={() => { setDispatchFormOpen(!dispatchFormOpen); setError(''); setNotice('') }}><Plus size={16} /> Record dispatch</button></div>
+          {dispatchFormOpen && <form className="record-form" onSubmit={addDispatch}>
+            <label>Job order *<select value={dispatchForm.job_order_id} onChange={e => setDispatchForm({ ...dispatchForm, job_order_id: e.target.value })} required><option value="">Select job order</option>{jobOrders.filter(o => o.status !== 'cancelled' && o.status !== 'dispatched').map(o => { const produced = productionEntries.filter(p => p.job_order_id === o.id).reduce((sum, p) => sum + Number(p.output_weight_kg), 0); const sent = dispatches.filter(d => d.job_order_id === o.id).reduce((sum, d) => sum + Number(d.weight_kg), 0); const available = Math.max(0, produced - sent); return available > 0 ? <option key={o.id} value={o.id}>{o.order_number} · {customerName(o.customer_id)} · {available.toLocaleString('en-IN', { maximumFractionDigits: 2 })} kg available</option> : null })}</select></label>
+            <label>Dispatch date *<input type="date" value={dispatchForm.dispatch_date} onChange={e => setDispatchForm({ ...dispatchForm, dispatch_date: e.target.value })} required /></label>
+            <label>Dispatched weight (kg) *<input type="number" min="0.01" step="0.01" value={dispatchForm.weight_kg} onChange={e => setDispatchForm({ ...dispatchForm, weight_kg: e.target.value })} required /></label>
+            <label>Vehicle number<input value={dispatchForm.vehicle_number} onChange={e => setDispatchForm({ ...dispatchForm, vehicle_number: e.target.value.toUpperCase() })} placeholder="e.g. TN 39 AB 1234" /></label>
+            <label>Delivery note number<input value={dispatchForm.delivery_note_number} onChange={e => setDispatchForm({ ...dispatchForm, delivery_note_number: e.target.value })} /></label>
+            <label className="wide-field">Notes<textarea rows={2} value={dispatchForm.notes} onChange={e => setDispatchForm({ ...dispatchForm, notes: e.target.value })} /></label>
+            <div className="form-actions"><button className="primary-btn" type="submit" disabled={busy || !jobOrders.some(o => o.id === dispatchForm.job_order_id)}>{busy ? 'Saving…' : 'Save dispatch'}</button><button className="secondary-btn" type="button" onClick={() => setDispatchFormOpen(false)}>Cancel</button>{!jobOrders.some(o => productionEntries.some(p => p.job_order_id === o.id) && o.status !== 'cancelled' && o.status !== 'dispatched') && <span className="field-hint">Record production output before dispatching fabric.</span>}</div>
+          </form>}
+          <div className="table-toolbar"><span>{dispatches.length} dispatch records</span><span>Latest 200 records</span></div>
+          <div className="table-scroll"><table className="records-table"><thead><tr><th>Date</th><th>Job order</th><th>Customer</th><th>Dispatched (kg)</th><th>Vehicle</th><th>Delivery note</th></tr></thead><tbody>{dispatches.map(d => { const order = jobOrders.find(o => o.id === d.job_order_id); return <tr key={d.id}><td>{d.dispatch_date}</td><td><strong>{order?.order_number ?? 'Job order'}</strong></td><td>{order ? customerName(order.customer_id) : '—'}</td><td>{Number(d.weight_kg).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td><td>{d.vehicle_number || '—'}</td><td>{d.delivery_note_number || '—'}</td></tr> })}</tbody></table>{!dispatches.length && <div className="empty-state"><Truck size={25} /><strong>No dispatches recorded yet</strong><span>Once production output is available, record the dispatched weight here.</span></div>}</div>
         </section>}
         {notice && <div className="inline-notice" role="status">{notice}<button onClick={() => setNotice('')} aria-label="Dismiss">×</button></div>}
         {error && <p className="form-message error-message" role="alert">{error}</p>}
