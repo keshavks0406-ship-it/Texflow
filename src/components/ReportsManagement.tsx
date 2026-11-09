@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Activity, Boxes, CalendarDays, ClipboardList, Factory, Fuel, IndianRupee, PackageCheck, RefreshCw, TrendingDown, TrendingUp } from 'lucide-react'
+import { Activity, Boxes, CalendarDays, ClipboardList, Factory, Fuel, PackageCheck, RefreshCw, TrendingDown, TrendingUp } from 'lucide-react'
 import type { Tables } from '../types/database'
 import { supabase } from '../lib/supabase'
 
@@ -41,13 +41,13 @@ export default function ReportsManagement({ organizationId, factoryId }: Props) 
     setLoading(true); setError('')
     const results = await Promise.all([
       supabase.from('production_entries').select('production_date,input_weight_kg,output_weight_kg').eq('organization_id', organizationId).eq('factory_id', factoryId).gte('production_date', from).lte('production_date', to),
-      supabase.from('dispatches').select('dispatch_date,weight_kg').eq('organization_id', organizationId).gte('dispatch_date', from).lte('dispatch_date', to),
+      supabase.from('dispatches').select('dispatch_date,weight_kg,job_orders!inner(factory_id)').eq('organization_id', organizationId).eq('job_orders.factory_id', factoryId).gte('dispatch_date', from).lte('dispatch_date', to),
       supabase.from('job_orders').select('status,received_weight_kg').eq('organization_id', organizationId).eq('factory_id', factoryId),
       supabase.from('expenses').select('expense_date,amount,category').eq('organization_id', organizationId).gte('expense_date', from).lte('expense_date', to),
       supabase.from('purchases').select('purchase_date,total_amount').eq('organization_id', organizationId).eq('factory_id', factoryId).gte('purchase_date', from).lte('purchase_date', to),
       supabase.from('boiler_logs').select('log_date,fabric_processed_kg,firewood_consumed_kg,fuel_cost,steam_generated_kg').eq('organization_id', organizationId).eq('factory_id', factoryId).gte('log_date', from).lte('log_date', to),
       supabase.from('account_invoices').select('id,invoice_type,total_amount').eq('organization_id', organizationId).eq('factory_id', factoryId).gte('invoice_date', from).lte('invoice_date', to),
-      supabase.from('account_payments').select('invoice_id,amount').eq('organization_id', organizationId).eq('factory_id', factoryId).gte('payment_date', from).lte('payment_date', to)
+      supabase.from('account_payments').select('invoice_id,amount').eq('organization_id', organizationId).eq('factory_id', factoryId)
     ])
     const failed = results.find(r => r.error)
     if (failed?.error) { setError(failed.error.message); setLoading(false); return }
