@@ -5,10 +5,11 @@ import type { Tables } from './types/database'
 import EmployeeManagement from './components/EmployeeManagement'
 import AccountsManagement from './components/AccountsManagement'
 import ReportsManagement from './components/ReportsManagement'
+import QualityManagement from './components/QualityManagement'
 import { isSupabaseConfigured, supabase } from './lib/supabase'
 
 type Language = 'en' | 'ta'
-type Page = 'overview' | 'customers' | 'orders' | 'production' | 'dispatch' | 'expenses' | 'purchases' | 'inventory' | 'boiler' | 'employees' | 'accounts' | 'reports'
+type Page = 'overview' | 'customers' | 'orders' | 'production' | 'dispatch' | 'expenses' | 'purchases' | 'inventory' | 'boiler' | 'employees' | 'accounts' | 'reports' | 'quality'
 type Organization = Tables<'organizations'>
 type FactoryRow = Tables<'factories'>
 type Customer = Tables<'customers'>
@@ -558,12 +559,13 @@ export default function App() {
         <button className={'nav-link ' + (page === 'employees' ? 'active' : '')} onClick={() => { setPage('employees'); setMenuOpen(false) }}><Users size={18} />Employees & attendance</button>
         <button className={'nav-link ' + (page === 'accounts' ? 'active' : '')} onClick={() => { setPage('accounts'); setMenuOpen(false) }}><Wallet size={18} />Accounts</button>
         <button className={'nav-link ' + (page === 'reports' ? 'active' : '')} onClick={() => { setPage('reports'); setMenuOpen(false) }}><Package size={18} />Reports & analytics</button>
+        <button className={'nav-link ' + (page === 'quality' ? 'active' : '')} onClick={() => { setPage('quality'); setMenuOpen(false) }}><ShieldCheck size={18} />Quality control</button>
       </nav>
       <div className="sidebar-bottom"><button className="nav-link" onClick={() => setNotice('Settings will be added in a later stage.')}><Settings size={18} />Settings</button><button className="nav-link" onClick={() => setNotice('Help and support will be added in a later stage.')}><CircleHelp size={18} />Help & support</button><div className="profile-row"><div className="avatar">{(user.email?.[0] ?? 'U').toUpperCase()}</div><div><strong>{user.user_metadata?.full_name || user.email}</strong><small>{user.email}</small></div><button className="icon-btn" aria-label={tr.signout} onClick={signOut}><LogOut size={17} /></button></div></div>
     </aside>
     {menuOpen && <button className="scrim" aria-label="Close menu" onClick={() => setMenuOpen(false)} />}
     <main className="main-area">
-      <header className="topbar"><button className="icon-btn mobile-menu" aria-label="Open menu" onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <X /> : <Menu />}</button><div className="breadcrumb">{currentOrg?.name ?? 'Workspace'} <span>/</span> {page === 'overview' ? tr.overview : page === 'customers' ? tr.customers : page === 'orders' ? tr.orders : page === 'production' ? 'Production' : page === 'dispatch' ? 'Dispatch' : page === 'expenses' ? 'Expenses' : page === 'purchases' ? 'Purchases' : page === 'inventory' ? 'Inventory' : page === 'employees' ? 'Employees & attendance' : page === 'accounts' ? 'Accounts' : page === 'reports' ? 'Reports & analytics' : 'Boiler & fuel'}</div><div className="top-actions"><LanguageSwitch language={language} setLanguage={setLanguage} /><button className="icon-btn notification" aria-label="Notifications"><Bell size={19} /></button><div className="top-avatar">{(user.email?.[0] ?? 'U').toUpperCase()}</div></div></header>
+      <header className="topbar"><button className="icon-btn mobile-menu" aria-label="Open menu" onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <X /> : <Menu />}</button><div className="breadcrumb">{currentOrg?.name ?? 'Workspace'} <span>/</span> {page === 'overview' ? tr.overview : page === 'customers' ? tr.customers : page === 'orders' ? tr.orders : page === 'production' ? 'Production' : page === 'dispatch' ? 'Dispatch' : page === 'expenses' ? 'Expenses' : page === 'purchases' ? 'Purchases' : page === 'inventory' ? 'Inventory' : page === 'employees' ? 'Employees & attendance' : page === 'accounts' ? 'Accounts' : page === 'reports' ? 'Reports & analytics' : page === 'quality' ? 'Quality control' : 'Boiler & fuel'}</div><div className="top-actions"><LanguageSwitch language={language} setLanguage={setLanguage} /><button className="icon-btn notification" aria-label="Notifications"><Bell size={19} /></button><div className="top-avatar">{(user.email?.[0] ?? 'U').toUpperCase()}</div></div></header>
       <div className="content">
         {page === 'overview' && <>
           <div className="welcome-row"><div><span className="eyebrow">LIVE WORKSPACE · {new Date().toLocaleDateString('en-IN', { dateStyle: 'full' })}</span><h1>Welcome, {user.user_metadata?.full_name || user.email?.split('@')[0]} <span>✦</span></h1><p>Here is the live overview of your factory workspace.</p></div><div className="demo-tag"><span />Connected</div></div>
@@ -604,6 +606,7 @@ export default function App() {
         {page === 'employees' && <EmployeeManagement organizationId={selectedOrg} factoryId={selectedFactory} />}
         {page === 'accounts' && <AccountsManagement organizationId={selectedOrg} factoryId={selectedFactory} />}
         {page === 'reports' && <ReportsManagement organizationId={selectedOrg} factoryId={selectedFactory} />}
+        {page === 'quality' && <QualityManagement organizationId={selectedOrg} factoryId={selectedFactory} />}
         {page === 'boiler' && <section className="panel data-panel">
           <div className="section-heading"><div><h2>Boiler & fuel tracking</h2><p>Daily firewood use, boiler hours, steam output and fabric-processing cost</p></div><button className="primary-btn" onClick={() => { setBoilerFormOpen(!boilerFormOpen); setError(''); setNotice('') }}><Plus size={16} /> Daily boiler entry</button></div>
           <div className="expense-summary">
