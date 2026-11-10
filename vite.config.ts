@@ -8,6 +8,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],
+      workbox: { importScripts: ['/push-handler.js'] },
       manifest: {
         name: 'TexFlow — Textile Factory Management',
         short_name: 'TexFlow',
