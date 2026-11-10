@@ -14,6 +14,15 @@ export type Database = {
   }
   public: {
     Tables: {
+      push_subscriptions: {
+        Row: { id: string; user_id: string; organization_id: string; factory_id: string; endpoint: string; p256dh: string; auth: string; device_label: string | null; is_active: boolean; created_at: string; updated_at: string }
+        Insert: { id?: string; user_id: string; organization_id: string; factory_id: string; endpoint: string; p256dh: string; auth: string; device_label?: string | null; is_active?: boolean; created_at?: string; updated_at?: string }
+        Update: { id?: string; user_id?: string; organization_id?: string; factory_id?: string; endpoint?: string; p256dh?: string; auth?: string; device_label?: string | null; is_active?: boolean; created_at?: string; updated_at?: string }
+        Relationships: [
+          { foreignKeyName: "push_subscriptions_factory_scope_fk"; columns: ["factory_id", "organization_id"]; isOneToOne: false; referencedRelation: "factories"; referencedColumns: ["id", "organization_id"] }
+        ]
+      }
+
       boiler_logs: {
         Row: {
           boiler_operating_hours: number
