@@ -90,7 +90,7 @@ export default function PushNotificationSettings({ organizationId, factoryId, us
     <div className="push-explainer"><ShieldCheck size={18}/><span>Subscriptions are linked to your signed-in account and selected factory. You can disable this device at any time.</span></div>
     {supported && (enabled
       ? <button className="secondary-btn" onClick={disablePush} disabled={busy}>{busy ? 'Updating…' : 'Disable on this device'}</button>
-      : <button className="primary-btn" onClick={enablePush} disabled={busy || !organizationId || !factoryId}>{busy ? 'Enabling…' : 'Enable push notifications'}</button>)}
+      : <button className="primary-btn" onClick={enablePush} disabled={busy || !organizationId || !factoryId || !vapidKey}>{busy ? 'Enabling…' : 'Enable push notifications'}</button>)}
     {message && <p className="form-message" role="status">{message}</p>}
   </section>
 }
