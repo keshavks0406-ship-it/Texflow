@@ -237,6 +237,22 @@ export default function App() {
 
   useEffect(() => {
     const client = supabase
+    if (!client || !user || !selectedOrg || !selectedFactory) { setNotificationsUnread(0); return }
+    let alive = true
+    const loadUnreadNotifications = async () => {
+      const { count, error: notificationError } = await client.from('factory_notifications')
+        .select('id', { count: 'exact', head: true })
+        .eq('organization_id', selectedOrg).eq('factory_id', selectedFactory)
+        .eq('is_active', true).eq('is_read', false)
+      if (alive && !notificationError) setNotificationsUnread(count ?? 0)
+    }
+    void loadUnreadNotifications()
+    const interval = window.setInterval(() => void loadUnreadNotifications(), 60000)
+    return () => { alive = false; window.clearInterval(interval) }
+  }, [user, selectedOrg, selectedFactory])
+
+  useEffect(() => {
+    const client = supabase
     if (!client || !user || !selectedOrg || !selectedFactory) { setMetricsReady(false); return }
     let alive = true
     setMetricsReady(false)
