@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { CalendarDays, ClipboardList, Factory, Gauge, Plus, RefreshCw, UserRound } from 'lucide-react'
+import { CalendarDays, ClipboardList, Factory, Gauge, Plus, RefreshCw } from 'lucide-react'
 import type { Tables } from '../types/database'
 import { supabase } from '../lib/supabase'
 
