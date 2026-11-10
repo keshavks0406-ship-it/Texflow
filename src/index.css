@@ -327,3 +327,24 @@ footer{display:flex;justify-content:space-between;padding:25px 2px 0;color:#9aac
 .document-actions .danger-btn{color:#b43d36}
 @media(max-width:700px){.documents-summary{grid-template-columns:repeat(3,minmax(0,1fr))}.documents-toolbar{align-items:stretch;flex-direction:column}.documents-search,.documents-toolbar>select,.documents-toolbar>button{width:100%}}
 @media(max-width:560px){.documents-summary{gap:8px}.documents-summary>div{padding:12px}.documents-summary strong{font-size:16px}.documents-management .section-heading{align-items:flex-start;flex-direction:column}.documents-management .section-heading>button{width:100%;justify-content:center}}
+
+
+/* Production planning and machine allocation */
+.planning-management{display:flex;flex-direction:column;gap:18px}
+.planning-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+.planning-form h3{grid-column:1/-1;margin:0 0 4px;font-size:15px}
+.planning-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.planning-toolbar>label{display:flex;align-items:center;gap:8px;color:var(--muted,#64748b);font-size:13px}
+.planning-toolbar input,.planning-toolbar select{padding:9px 10px;border:1px solid var(--border,#dbe1e8);border-radius:9px;background:var(--surface,#fff);color:inherit;font:inherit}
+.planning-table{min-width:1080px}
+.planning-subtext{display:block;margin-top:4px;color:var(--muted,#64748b);font-size:11px}
+.planning-status{display:inline-flex;padding:5px 9px;border-radius:999px;font-size:11px;font-weight:700;text-transform:capitalize;white-space:nowrap}
+.planning-planned{background:#edf1f5;color:#536477}
+.planning-in_progress{background:#fff5df;color:#916015}
+.planning-completed{background:#e6f5ec;color:#216b43}
+.planning-cancelled{background:#fff0ed;color:#a33b2e}
+.planning-actions{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.planning-actions .secondary-btn{padding:6px 9px;font-size:11px}
+@media(max-width:900px){.planning-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.planning-toolbar{align-items:stretch;flex-direction:column}.planning-toolbar>label,.planning-toolbar>label input,.planning-toolbar>select,.planning-toolbar>button{width:100%}}
+@media(max-width:560px){.planning-summary{gap:8px}.planning-summary>div{padding:12px}.planning-summary strong{font-size:16px}.planning-management .section-heading{align-items:flex-start;flex-direction:column}.planning-management .section-heading>button{width:100%;justify-content:center}.planning-actions{min-width:130px}}
