@@ -5,16 +5,6 @@ import { supabase } from '../lib/supabase'
 
 type AlertRow = Tables<'factory_notifications'>
 type Props = { organizationId: string; factoryId: string; onUnreadCountChange?: (count:number)=>void; onNavigate?: (page:string)=>void }
-type AlertDraft = { alert_key:string; category:string; severity:string; title:string; message:string; action_page:string; source_id:string|null }
-type Job = Tables<'job_orders'>
-type Item = Tables<'inventory_items'>
-type Movement = Tables<'inventory_transactions'>
-type Document = Tables<'factory_documents'>
-type Maintenance = Tables<'machine_maintenance_logs'>
-type Plan = Tables<'production_plans'>
-type Production = Tables<'production_entries'>
-const today=()=>new Date().toLocaleDateString('en-CA')
-const daysBetween=(date:string)=>Math.ceil((new Date(date+'T00:00:00').getTime()-new Date(today()+'T00:00:00').getTime())/86400000)
 const dateLabel=(date:string)=>new Date(date+'T00:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})
 const severityRank=(s:string)=>s==='critical'?0:s==='high'?1:s==='medium'?2:3
 const iconFor=(category:string)=>category==='Inventory'?Boxes:category==='Job orders'?CalendarClock:category==='Maintenance'?Wrench:category==='Documents'?FileText:Factory
