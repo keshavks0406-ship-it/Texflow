@@ -384,3 +384,13 @@ footer{display:flex;justify-content:space-between;padding:25px 2px 0;color:#9aac
 @media(max-width:900px){.notification-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){.notification-toolbar{align-items:stretch;flex-direction:column}.notification-search,.notification-toolbar>select,.notification-toolbar>button{width:100%}.notification-tools{width:100%}.notification-tools button{flex:1;justify-content:center}}
 @media(max-width:560px){.notification-summary{gap:8px}.notification-summary>div{padding:12px}.notification-summary strong{font-size:16px}.notifications-management .section-heading{align-items:flex-start;flex-direction:column}.notification-card{padding:12px;gap:10px}.notification-icon{width:33px;height:33px}.notification-tools{flex-direction:column}.notification-tools button{width:100%}}
+
+
+/* Device push notification settings */
+.push-settings{display:flex;flex-direction:column;gap:18px}
+.push-status{display:flex;align-items:center;gap:14px;padding:18px;border:1px solid #dce9e5;border-radius:12px;background:#f7fbf9}
+.push-status-icon{width:44px;height:44px;display:grid;place-items:center;border-radius:12px;background:#e2f5ed;color:#16735d}
+.push-status strong{font-size:14px}
+.push-status p{margin:5px 0 0;color:#71847f;font-size:12px}
+.push-explainer{display:flex;align-items:flex-start;gap:10px;color:#5e746e;font-size:12px;line-height:1.6}
+.push-explainer svg{flex:0 0 auto;color:#16735d}
