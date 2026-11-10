@@ -37,6 +37,14 @@ create index if not exists production_plans_job_order_idx
 create unique index if not exists production_plans_machine_slot_uq
   on public.production_plans (organization_id, factory_id, machine_id, planned_date, shift)
   where status <> 'cancelled';
+create index if not exists production_plans_factory_scope_fk_idx
+  on public.production_plans (factory_id, organization_id);
+create index if not exists production_plans_job_order_scope_fk_idx
+  on public.production_plans (job_order_id, organization_id, factory_id);
+create index if not exists production_plans_machine_scope_fk_idx
+  on public.production_plans (machine_id, organization_id, factory_id);
+create index if not exists production_plans_supervisor_scope_fk_idx
+  on public.production_plans (supervisor_id, organization_id, factory_id);
 alter table public.production_plans enable row level security;
 drop policy if exists "Members manage factory production plans" on public.production_plans;
 create policy "Members manage factory production plans"
