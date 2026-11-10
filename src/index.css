@@ -348,3 +348,39 @@ footer{display:flex;justify-content:space-between;padding:25px 2px 0;color:#9aac
 @media(max-width:900px){.planning-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){.planning-toolbar{align-items:stretch;flex-direction:column}.planning-toolbar>label,.planning-toolbar>label input,.planning-toolbar>select,.planning-toolbar>button{width:100%}}
 @media(max-width:560px){.planning-summary{gap:8px}.planning-summary>div{padding:12px}.planning-summary strong{font-size:16px}.planning-management .section-heading{align-items:flex-start;flex-direction:column}.planning-management .section-heading>button{width:100%;justify-content:center}.planning-actions{min-width:130px}}
+
+
+/* Factory notifications and operational alerts */
+.notifications-management{display:flex;flex-direction:column;gap:18px}
+.notification-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+.notification-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.notification-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.notification-search{display:flex;align-items:center;gap:8px;flex:1;min-width:220px;padding:0 11px;border:1px solid var(--border,#dbe1e8);border-radius:9px;background:var(--surface,#fff);color:var(--muted,#64748b)}
+.notification-search input{width:100%;min-width:0;padding:10px 0;border:0;outline:0;background:transparent;color:inherit;font:inherit}
+.notification-toolbar>select{min-width:150px;padding:10px;border:1px solid var(--border,#dbe1e8);border-radius:9px;background:var(--surface,#fff);color:inherit;font:inherit}
+.notification-list{display:flex;flex-direction:column;gap:10px}
+.notification-card{position:relative;display:flex;align-items:flex-start;gap:13px;padding:15px;border:1px solid var(--border,#e2e8f0);border-radius:12px;background:var(--surface,#fff)}
+.notification-card.notification-read{opacity:.78}
+.notification-card.notification-resolved{background:var(--surface-muted,#f8fafc);opacity:.72}
+.notification-icon{display:grid;place-items:center;flex:none;width:38px;height:38px;border-radius:10px;background:#eef2f7;color:#536477}
+.notification-critical{background:#fff0ed;color:#a33b2e}
+.notification-high{background:#fff5df;color:#916015}
+.notification-medium{background:#eaf2ff;color:#315d9b}
+.notification-low{background:#edf1f5;color:#536477}
+.notification-body{flex:1;min-width:0}
+.notification-meta{display:flex;align-items:center;gap:9px;flex-wrap:wrap;color:var(--muted,#64748b);font-size:11px}
+.notification-severity{font-weight:750;text-transform:uppercase;letter-spacing:.04em}
+.severity-critical{color:#a33b2e}.severity-high{color:#916015}.severity-medium{color:#315d9b}.severity-low{color:#536477}
+.notification-body h3{margin:6px 0 4px;font-size:14px;font-weight:750}
+.notification-body p{margin:0;color:var(--muted,#64748b);font-size:13px;line-height:1.5}
+.notification-card-actions{display:flex;align-items:center;gap:15px;flex-wrap:wrap;margin-top:10px}
+.notification-card-actions .text-action{display:inline-flex;align-items:center;gap:5px;padding:0;border:0;background:none;color:var(--accent,#3567a9);font:inherit;font-size:12px;font-weight:650;cursor:pointer}
+.notification-card-actions .text-action:disabled{color:var(--muted,#64748b);cursor:default}
+.notification-unread-dot{flex:none;width:9px;height:9px;margin:5px 2px 0 0;border-radius:50%;background:#3977d5}
+.notification{position:relative}
+.notification-count,.nav-notification-count{display:inline-flex;align-items:center;justify-content:center;min-width:17px;height:17px;padding:0 4px;border-radius:999px;background:#b83b32;color:white;font-size:10px;font-weight:750;line-height:1}
+.notification-count{position:absolute;top:-3px;right:-5px;border:2px solid var(--surface,#fff)}
+.nav-notification-count{margin-left:auto}
+@media(max-width:900px){.notification-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.notification-toolbar{align-items:stretch;flex-direction:column}.notification-search,.notification-toolbar>select,.notification-toolbar>button{width:100%}.notification-tools{width:100%}.notification-tools button{flex:1;justify-content:center}}
+@media(max-width:560px){.notification-summary{gap:8px}.notification-summary>div{padding:12px}.notification-summary strong{font-size:16px}.notifications-management .section-heading{align-items:flex-start;flex-direction:column}.notification-card{padding:12px;gap:10px}.notification-icon{width:33px;height:33px}.notification-tools{flex-direction:column}.notification-tools button{width:100%}}
