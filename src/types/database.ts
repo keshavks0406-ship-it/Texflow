@@ -673,6 +673,86 @@ export type Database = {
         }
         Relationships: []
       }
+      production_plans: {
+        Row: {
+          created_at: string
+          factory_id: string
+          id: string
+          job_order_id: string
+          machine_id: string
+          notes: string | null
+          organization_id: string
+          planned_date: string
+          planned_input_kg: number
+          planned_output_kg: number
+          shift: string
+          status: string
+          supervisor_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          factory_id: string
+          id?: string
+          job_order_id: string
+          machine_id: string
+          notes?: string | null
+          organization_id: string
+          planned_date?: string
+          planned_input_kg: number
+          planned_output_kg: number
+          shift?: string
+          status?: string
+          supervisor_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          factory_id?: string
+          id?: string
+          job_order_id?: string
+          machine_id?: string
+          notes?: string | null
+          organization_id?: string
+          planned_date?: string
+          planned_input_kg?: number
+          planned_output_kg?: number
+          shift?: string
+          status?: string
+          supervisor_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_plans_factory_scope_fk"
+            columns: ["factory_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "factories"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "production_plans_job_order_scope_fk"
+            columns: ["job_order_id", "organization_id", "factory_id"]
+            isOneToOne: false
+            referencedRelation: "job_orders"
+            referencedColumns: ["id", "organization_id", "factory_id"]
+          },
+          {
+            foreignKeyName: "production_plans_machine_scope_fk"
+            columns: ["machine_id", "organization_id", "factory_id"]
+            isOneToOne: false
+            referencedRelation: "machines"
+            referencedColumns: ["id", "organization_id", "factory_id"]
+          },
+          {
+            foreignKeyName: "production_plans_supervisor_scope_fk"
+            columns: ["supervisor_id", "organization_id", "factory_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id", "organization_id", "factory_id"]
+          },
+        ]
+      }
       production_entries: {
         Row: {
           created_at: string
