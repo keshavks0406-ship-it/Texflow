@@ -12,7 +12,7 @@ import ProductionPlanningManagement from './components/ProductionPlanningManagem
 import { isSupabaseConfigured, supabase } from './lib/supabase'
 
 type Language = 'en' | 'ta'
-type Page = 'overview' | 'customers' | 'orders' | 'production' | 'dispatch' | 'expenses' | 'purchases' | 'inventory' | 'boiler' | 'employees' | 'accounts' | 'reports' | 'quality' | 'maintenance' | 'documents'
+type Page = 'overview' | 'customers' | 'orders' | 'production' | 'dispatch' | 'expenses' | 'purchases' | 'inventory' | 'boiler' | 'employees' | 'accounts' | 'reports' | 'quality' | 'maintenance' | 'documents' | 'planning'
 type Organization = Tables<'organizations'>
 type FactoryRow = Tables<'factories'>
 type Customer = Tables<'customers'>
