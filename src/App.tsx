@@ -9,10 +9,11 @@ import QualityManagement from './components/QualityManagement'
 import MaintenanceManagement from './components/MaintenanceManagement'
 import DocumentManagement from './components/DocumentManagement'
 import ProductionPlanningManagement from './components/ProductionPlanningManagement'
+import NotificationsManagement from './components/NotificationsManagement'
 import { isSupabaseConfigured, supabase } from './lib/supabase'
 
 type Language = 'en' | 'ta'
-type Page = 'overview' | 'customers' | 'orders' | 'production' | 'dispatch' | 'expenses' | 'purchases' | 'inventory' | 'boiler' | 'employees' | 'accounts' | 'reports' | 'quality' | 'maintenance' | 'documents' | 'planning'
+type Page = 'overview' | 'customers' | 'orders' | 'production' | 'dispatch' | 'expenses' | 'purchases' | 'inventory' | 'boiler' | 'employees' | 'accounts' | 'reports' | 'quality' | 'maintenance' | 'documents' | 'planning' | 'notifications'
 type Organization = Tables<'organizations'>
 type FactoryRow = Tables<'factories'>
 type Customer = Tables<'customers'>
@@ -65,6 +66,7 @@ export default function App() {
   const [metricsReady, setMetricsReady] = useState(false)
   const [page, setPage] = useState<Page>('overview')
   const [menuOpen, setMenuOpen] = useState(false)
+  const [notificationsUnread, setNotificationsUnread] = useState(0)
   const [customers, setCustomers] = useState<Customer[]>([])
   const [jobOrders, setJobOrders] = useState<JobOrder[]>([])
   const [productionEntries, setProductionEntries] = useState<ProductionEntry[]>([])
@@ -566,12 +568,13 @@ export default function App() {
         <button className={'nav-link ' + (page === 'quality' ? 'active' : '')} onClick={() => { setPage('quality'); setMenuOpen(false) }}><ShieldCheck size={18} />Quality control</button>
         <button className={'nav-link ' + (page === 'maintenance' ? 'active' : '')} onClick={() => { setPage('maintenance'); setMenuOpen(false) }}><Wrench size={18} />Machine maintenance</button>
         <button className={'nav-link ' + (page === 'documents' ? 'active' : '')} onClick={() => { setPage('documents'); setMenuOpen(false) }}><FileText size={18} />Documents</button>
+        <button className={'nav-link ' + (page === 'notifications' ? 'active' : '')} onClick={() => { setPage('notifications'); setMenuOpen(false) }}><Bell size={18} />Notifications {notificationsUnread>0&&<span className="nav-notification-count">{notificationsUnread>99?'99+':notificationsUnread}</span>}</button>
       </nav>
       <div className="sidebar-bottom"><button className="nav-link" onClick={() => setNotice('Settings will be added in a later stage.')}><Settings size={18} />Settings</button><button className="nav-link" onClick={() => setNotice('Help and support will be added in a later stage.')}><CircleHelp size={18} />Help & support</button><div className="profile-row"><div className="avatar">{(user.email?.[0] ?? 'U').toUpperCase()}</div><div><strong>{user.user_metadata?.full_name || user.email}</strong><small>{user.email}</small></div><button className="icon-btn" aria-label={tr.signout} onClick={signOut}><LogOut size={17} /></button></div></div>
     </aside>
     {menuOpen && <button className="scrim" aria-label="Close menu" onClick={() => setMenuOpen(false)} />}
     <main className="main-area">
-      <header className="topbar"><button className="icon-btn mobile-menu" aria-label="Open menu" onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <X /> : <Menu />}</button><div className="breadcrumb">{currentOrg?.name ?? 'Workspace'} <span>/</span> {page === 'overview' ? tr.overview : page === 'customers' ? tr.customers : page === 'orders' ? tr.orders : page === 'production' ? 'Production' : page === 'dispatch' ? 'Dispatch' : page === 'expenses' ? 'Expenses' : page === 'purchases' ? 'Purchases' : page === 'inventory' ? 'Inventory' : page === 'employees' ? 'Employees & attendance' : page === 'accounts' ? 'Accounts' : page === 'reports' ? 'Reports & analytics' : page === 'quality' ? 'Quality control' : page === 'maintenance' ? 'Machine maintenance' : page === 'documents' ? 'Documents' : page === 'planning' ? 'Production planning' : 'Boiler & fuel'}</div><div className="top-actions"><LanguageSwitch language={language} setLanguage={setLanguage} /><button className="icon-btn notification" aria-label="Notifications"><Bell size={19} /></button><div className="top-avatar">{(user.email?.[0] ?? 'U').toUpperCase()}</div></div></header>
+      <header className="topbar"><button className="icon-btn mobile-menu" aria-label="Open menu" onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <X /> : <Menu />}</button><div className="breadcrumb">{currentOrg?.name ?? 'Workspace'} <span>/</span> {page === 'overview' ? tr.overview : page === 'customers' ? tr.customers : page === 'orders' ? tr.orders : page === 'production' ? 'Production' : page === 'dispatch' ? 'Dispatch' : page === 'expenses' ? 'Expenses' : page === 'purchases' ? 'Purchases' : page === 'inventory' ? 'Inventory' : page === 'employees' ? 'Employees & attendance' : page === 'accounts' ? 'Accounts' : page === 'reports' ? 'Reports & analytics' : page === 'quality' ? 'Quality control' : page === 'maintenance' ? 'Machine maintenance' : page === 'documents' ? 'Documents' : page === 'planning' ? 'Production planning' : page === 'notifications' ? 'Notifications & alerts' : 'Boiler & fuel'}</div><div className="top-actions"><LanguageSwitch language={language} setLanguage={setLanguage} /><button className="icon-btn notification" aria-label={'Notifications, '+notificationsUnread+' unread'} onClick={()=>setPage('notifications')}><Bell size={19}/>{notificationsUnread>0&&<span className="notification-count">{notificationsUnread>99?'99+':notificationsUnread}</span>}</button><div className="top-avatar">{(user.email?.[0] ?? 'U').toUpperCase()}</div></div></header>
       <div className="content">
         {page === 'overview' && <>
           <div className="welcome-row"><div><span className="eyebrow">LIVE WORKSPACE · {new Date().toLocaleDateString('en-IN', { dateStyle: 'full' })}</span><h1>Welcome, {user.user_metadata?.full_name || user.email?.split('@')[0]} <span>✦</span></h1><p>Here is the live overview of your factory workspace.</p></div><div className="demo-tag"><span />Connected</div></div>
@@ -616,6 +619,7 @@ export default function App() {
         {page === 'maintenance' && <MaintenanceManagement organizationId={selectedOrg} factoryId={selectedFactory} />}
         {page === 'documents' && <DocumentManagement organizationId={selectedOrg} factoryId={selectedFactory} />}
         {page === 'planning' && <ProductionPlanningManagement organizationId={selectedOrg} factoryId={selectedFactory} />}
+        {page === 'notifications' && <NotificationsManagement organizationId={selectedOrg} factoryId={selectedFactory} onUnreadCountChange={setNotificationsUnread} onNavigate={target=>{setPage(target as Page);setMenuOpen(false)}} />}
         {page === 'boiler' && <section className="panel data-panel">
           <div className="section-heading"><div><h2>Boiler & fuel tracking</h2><p>Daily firewood use, boiler hours, steam output and fabric-processing cost</p></div><button className="primary-btn" onClick={() => { setBoilerFormOpen(!boilerFormOpen); setError(''); setNotice('') }}><Plus size={16} /> Daily boiler entry</button></div>
           <div className="expense-summary">
