@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, Bell, Boxes, CalendarClock, Check, CheckCheck, Clock3, FileText, Factory, RefreshCw, Search, Wrench } from 'lucide-react'
+import { Bell, Boxes, CalendarClock, Check, CheckCheck, FileText, Factory, RefreshCw, Search, Wrench } from 'lucide-react'
 import type { Tables } from '../types/database'
 import { supabase } from '../lib/supabase'
 
