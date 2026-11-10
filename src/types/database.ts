@@ -817,6 +817,68 @@ export type Database = {
           },
         ]
       }
+      factory_notifications: {
+        Row: {
+          action_page: string
+          alert_key: string
+          category: string
+          created_at: string
+          factory_id: string
+          id: string
+          is_active: boolean
+          is_read: boolean
+          last_seen_at: string
+          message: string
+          organization_id: string
+          severity: string
+          source_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          action_page: string
+          alert_key: string
+          category: string
+          created_at?: string
+          factory_id: string
+          id?: string
+          is_active?: boolean
+          is_read?: boolean
+          last_seen_at?: string
+          message: string
+          organization_id: string
+          severity: string
+          source_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          action_page?: string
+          alert_key?: string
+          category?: string
+          created_at?: string
+          factory_id?: string
+          id?: string
+          is_active?: boolean
+          is_read?: boolean
+          last_seen_at?: string
+          message?: string
+          organization_id?: string
+          severity?: string
+          source_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "factory_notifications_factory_scope_fk"
+            columns: ["factory_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "factories"
+            referencedColumns: ["id", "organization_id"]
+          },
+        ]
+      }
       factory_documents: {
         Row: {
           created_at: string
